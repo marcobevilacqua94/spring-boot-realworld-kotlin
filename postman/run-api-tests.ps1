@@ -1,0 +1,1 @@
+npx newman run $PSScriptRoot/Conduit.postman_collection.json   --delay-request 500   --global-var "APIURL=$env:APIURL"   --global-var "USERNAME=$env:USERNAME"   --global-var "EMAIL=$env:EMAIL"   --global-var "PASSWORD=$env:PASSWORD"  "$@";
