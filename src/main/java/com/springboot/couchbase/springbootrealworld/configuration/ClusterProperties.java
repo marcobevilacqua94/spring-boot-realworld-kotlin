@@ -11,4 +11,6 @@ public class ClusterProperties {
 
     private String connectionString, username, password, defaultBucket, defaultScope, defaultCollection;
 
+    private boolean useCapella;
+
 }

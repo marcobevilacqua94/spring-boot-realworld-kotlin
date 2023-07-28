@@ -1,5 +1,6 @@
 package com.springboot.couchbase.springbootrealworld.configuration;
 
+import com.couchbase.client.java.env.ClusterEnvironment;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
@@ -43,5 +44,11 @@ public class CouchbaseConfig extends AbstractCouchbaseConfiguration {
     protected boolean autoIndexCreation() {
         return true;
     }
+
+    @Override
+    protected void configureEnvironment(final ClusterEnvironment.Builder builder) {
+        if (clusterProperties.isUseCapella()) builder.applyProfile("wan-development").securityConfig().enableTls(true);
+    }
+
 
 }
