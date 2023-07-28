@@ -15,6 +15,7 @@ env:
   COUCHBASE_PASSWORD: ${{ secrets.COUCHBASE_PASSWORD }}
   COUCHBASE_DEFAULTBUCKET: ${{ secrets.COUCHBASE_DEFAULTBUCKET }}
   COUCHBASE_DEFAULTSCOPE:  ${{ vars.GITHUB_HEAD_REF }}
+  COUCHBASE_USECAPELLA: ${{ vars.COUCHBASE_USECAPELLA }}
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -27,11 +28,11 @@ jobs:
       run: |
         apt update || echo "apt-update failed" # && apt -y upgrade
     - name: Set up JDK 11
-      uses: actions/setup-java@v2
+      uses: actions/setup-java@v3
       with:
         java-version: ${{ matrix.java-version }}
         distribution: 'adopt'
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Postman Tests
       run: |
         mvn --batch-mode --update-snapshots -B spring-boot:run --file pom.xml verify 
