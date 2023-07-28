@@ -35,14 +35,15 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     public ProfileDto followUser(String name, AuthUserDetails authUserDetails) {
         UserDocument followee = userRepository.findByUsername(name).orElseThrow(() -> new AppException(Error.USER_NOT_FOUND));
-        UserDocument follower = UserDocument.builder()
-                .id(String.valueOf(authUserDetails.getId()))
-                .build(); // myself
+        UserDocument follower = userRepository.findById(String.valueOf(authUserDetails.getId())).orElseThrow(() -> new AppException(Error.USER_NOT_FOUND));
+        ; // myself
 
         followRepository.findByFolloweeIdAndFollowerId(followee.getId(), follower.getId())
-                .ifPresent(follow -> {throw new AppException(Error.ALREADY_FOLLOWED_USER);});
+                .ifPresent(follow -> {
+                    throw new AppException(Error.ALREADY_FOLLOWED_USER);
+                });
 
-        FollowDocument follow =  FollowDocument.builder().followee(followee).follower(follower).build();
+        FollowDocument follow = FollowDocument.builder().followee(followee).follower(follower).build();
         followRepository.save(follow);
 
         return convertToProfile(followee, true);
@@ -52,10 +53,12 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     public ProfileDto unfollowUser(String name, AuthUserDetails authUserDetails) {
         UserDocument followee = userRepository.findByUsername(name).orElseThrow(() -> new AppException(Error.USER_NOT_FOUND));
-        UserDocument follower = UserDocument.builder().id(String.valueOf(authUserDetails.getId())).build(); // myself
+        UserDocument follower = userRepository.findById(String.valueOf(authUserDetails.getId())).orElseThrow(() -> new AppException(Error.USER_NOT_FOUND));
+        ; // myself
 
         FollowDocument follow = followRepository.findByFolloweeIdAndFollowerId(followee.getId(), follower.getId())
                 .orElseThrow(() -> new AppException(Error.FOLLOW_NOT_FOUND));
+        System.out.println(follow);
         followRepository.delete(follow);
 
         return convertToProfile(followee, false);
@@ -68,7 +71,6 @@ public class ProfileServiceImpl implements ProfileService {
         Boolean following = followRepository.findByFolloweeIdAndFollowerId(user.getId(), String.valueOf(authUserDetails.getId())).isPresent();
         return convertToProfile(user, following);
     }
-
 
 
     private ProfileDto convertToProfile(UserDocument user, Boolean following) {

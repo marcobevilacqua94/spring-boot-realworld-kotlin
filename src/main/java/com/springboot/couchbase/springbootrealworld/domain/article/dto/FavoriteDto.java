@@ -3,6 +3,7 @@ package com.springboot.couchbase.springbootrealworld.domain.article.dto;
 
 import com.springboot.couchbase.springbootrealworld.domain.profile.dto.ProfileDto;
 import lombok.*;
+
 import java.util.List;
 
 @Getter

@@ -5,9 +5,6 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
@@ -22,12 +19,13 @@ public class JwtUtils {
         this.validSeconds = validSeconds;
         key = Keys.hmacShaKeyFor(signKey.getBytes(StandardCharsets.UTF_8));
     }
+
     public String encode(String sub) {
         if (sub == null || sub.equals("")) {
             return null;
         }
         Instant exp = Instant.now();
-        return Jwts.builder().setSubject(sub).setIssuedAt(new Date(exp.toEpochMilli())).setExpiration(new Date(exp.toEpochMilli() + validSeconds*1000)).signWith(key).compact();
+        return Jwts.builder().setSubject(sub).setIssuedAt(new Date(exp.toEpochMilli())).setExpiration(new Date(exp.toEpochMilli() + validSeconds * 1000)).signWith(key).compact();
     }
 
     public boolean validateToken(String jwt) {
@@ -49,9 +47,6 @@ public class JwtUtils {
             return null;
         }
     }
-
-
-
 
 
 }

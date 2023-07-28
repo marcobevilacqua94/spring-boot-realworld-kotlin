@@ -8,12 +8,17 @@ import com.springboot.couchbase.springbootrealworld.domain.article.repository.Co
 import com.springboot.couchbase.springbootrealworld.domain.profile.dto.ProfileDto;
 import com.springboot.couchbase.springbootrealworld.domain.profile.service.ProfileService;
 import com.springboot.couchbase.springbootrealworld.domain.user.entity.UserDocument;
+import com.springboot.couchbase.springbootrealworld.exception.AppException;
+import com.springboot.couchbase.springbootrealworld.exception.Error;
 import com.springboot.couchbase.springbootrealworld.security.AuthUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,6 +44,8 @@ public class CommentServiceImpl implements CommentService {
                         .id(authUserDetails.getId())
                         .build())
                 .article(articleDocument)
+                .createdAt(new Date())
+                .updatedAt(new Date())
                 .build();
         commentRepository.save(commentDocument);
 
@@ -47,41 +54,38 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public List<CommentDto> getCommentsBySlug(String slug, AuthUserDetails authUserDetails) {
-
-            String articleId = articleRepository.findBySlug(slug).getId();
-            List<CommentDocument> commentEntities = commentRepository.findByArticleIdOrderByCreatedAtDesc(articleId);
-            return commentEntities.stream().map(commentEntity -> convertToDTO(authUserDetails, commentEntity)).collect(Collectors.toList());
+        ArticleDocument article = articleRepository.findBySlug(slug);
+        if (article == null) throw new AppException(Error.ARTICLE_NOT_FOUND);
+        String articleId = article.getId();
+        List<CommentDocument> commentEntities = commentRepository.findByArticleIdOrderByCreatedAtDesc(articleId);
+        return commentEntities.stream().map(commentEntity -> convertToDTO(authUserDetails, commentEntity)).collect(Collectors.toList());
 
     }
 
     @Transactional
     @Override
     public void delete(String commentId, AuthUserDetails authUserDetails) {
-        List<CommentDocument> commentEntity = commentRepository.findById(commentId);
-        commentRepository.deleteAll(commentEntity);
+        Optional<CommentDocument> commentEntity = commentRepository.findById(commentId);
+        commentEntity.ifPresentOrElse(ce -> commentRepository.delete(ce), () -> {
+            throw new AppException(Error.COMMENT_NOT_FOUND);
+        });
     }
 
     private CommentDto convertToDTO(AuthUserDetails authUserDetails, CommentDocument commentDocument) {
-        ProfileDto author = profileService.getProfileByUserId(commentDocument.getAuthor().getEmail(), authUserDetails);
-        return CommentDto.builder()
+        CommentDto.CommentDtoBuilder builder = CommentDto.builder()
                 .id(commentDocument.getId())
                 .createdAt(commentDocument.getCreatedAt())
                 .updatedAt(commentDocument.getUpdatedAt())
-                .body(commentDocument.getBody())
-                .author(author)
-                .build();
+                .body(commentDocument.getBody());
+        if (authUserDetails != null) {
+            ProfileDto author = profileService.getProfileByUserId(commentDocument.getAuthor().getEmail(), authUserDetails);
+            builder.author(author);
+        }
+        return builder.build();
     }
 
-
-    private CommentDto convertToDTOs( CommentDocument commentDocument) {
-//        ProfileDto author = profileService.getProfileByUserId(commentDocument.getAuthor().getEmail());
-        return CommentDto.builder()
-                .id(commentDocument.getId())
-                .createdAt(commentDocument.getCreatedAt())
-                .updatedAt(commentDocument.getUpdatedAt())
-                .body(commentDocument.getBody())
-//                .author(author)
-                .build();
+    private CommentDto convertToDTOs(CommentDocument commentDocument) {
+        return convertToDTO(null, commentDocument);
     }
 
 }

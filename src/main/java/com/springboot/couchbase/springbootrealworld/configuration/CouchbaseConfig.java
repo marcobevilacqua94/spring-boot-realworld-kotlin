@@ -1,31 +1,47 @@
 package com.springboot.couchbase.springbootrealworld.configuration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.couchbase.config.AbstractCouchbaseConfiguration;
 import org.springframework.data.couchbase.repository.config.EnableCouchbaseRepositories;
 
 @Configuration
-@EnableCouchbaseRepositories(basePackages={"com.springboot.couchbase.springbootrealworld"})
+@EnableCouchbaseRepositories(basePackages = {"com.springboot.couchbase.springbootrealworld"})
 public class CouchbaseConfig extends AbstractCouchbaseConfiguration {
 
+    public static final String ISO_8601_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+    @Autowired
+    private ClusterProperties clusterProperties;
+    @Autowired
+    private ObjectMapper objectMapper;
+
     public String getConnectionString() {
-        return "couchbase://127.0.0.1";
-    };
+        return clusterProperties.getConnectionString();
+    }
 
     public String getUserName() {
-        return "Administrator";
+        return clusterProperties.getUsername();
     }
 
     public String getPassword() {
-        return "Maru@Akinu11";
-    };
+        return clusterProperties.getPassword();
+    }
 
     public String getBucketName() {
-        return "sample";
-    };
+        return clusterProperties.getDefaultBucket();
+    }
 
+    @Override
+    protected String getScopeName() {
+        if (clusterProperties.getDefaultScope() != null)
+            return clusterProperties.getDefaultScope();
+        else return null;
+    }
 
-
-
+    @Override
+    protected boolean autoIndexCreation() {
+        return true;
+    }
 
 }

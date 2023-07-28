@@ -1,11 +1,9 @@
 package com.springboot.couchbase.springbootrealworld.domain.user.dto;
 
 
-
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import lombok.*;
-import org.jetbrains.annotations.NotNull;
 
 
 @Getter
@@ -22,7 +20,6 @@ public class UserDto {
     private String password;
     private String bio;
     private String image;
-
 
 
     @Getter

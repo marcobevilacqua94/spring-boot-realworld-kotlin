@@ -18,17 +18,23 @@ import com.springboot.couchbase.springbootrealworld.exception.AppException;
 import com.springboot.couchbase.springbootrealworld.exception.Error;
 import com.springboot.couchbase.springbootrealworld.security.AuthUserDetails;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.Date;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ArticleServiceImpl implements ArticleService {
+
+    Logger logger = LoggerFactory.getLogger(ArticleServiceImpl.class);
+
     @Autowired
     private ArticleRepository articleRepository;
     @Autowired
@@ -58,18 +64,20 @@ public class ArticleServiceImpl implements ArticleService {
                 .title(article.getTitle())
                 .description(article.getDescription())
                 .body(article.getBody())
-                .taglist(article.getTagList())
                 .author(author)
                 .build();
-
-                        for (String tag: article.getTagList()) {
-                            tagRepository.save(ArticleTagRelationDocument.builder()
-                                        .article(articleDocument)
-                                        .tag(tag)
-                                        .build());
-                            }
-
-        articleRepository.save(articleDocument);
+        articleDocument.setCreatedAt(new Date());
+        articleDocument.setUpdatedAt(new Date());
+        if (article.getTagList() != null) {
+            articleDocument.setTagList(article.getTagList().stream().sorted().collect(Collectors.toList()));
+            for (String tag : article.getTagList()) {
+                tagRepository.save(ArticleTagRelationDocument.builder()
+                        .article(articleDocument)
+                        .tag(tag)
+                        .build());
+            }
+        }
+        articleDocument = articleRepository.save(articleDocument);
 
         return convertEntityToDto(articleDocument, false, 0L, authUserDetails);
 
@@ -79,41 +87,47 @@ public class ArticleServiceImpl implements ArticleService {
     @Override
     public ArticleDto getArticleFavorite(String slug, AuthUserDetails authUserDetails) {
         ArticleDocument result = articleRepository.findBySlug(slug);
+        if (result == null) throw new AppException(Error.ARTICLE_NOT_FOUND);
         return convertEntityToDto(result, false, 0L, authUserDetails);
     }
 
     @Override
     public ArticleDto getArticle(String slug, AuthUserDetails authUserDetails) {
         ArticleDocument result = articleRepository.findBySlug(slug);
+        if (result == null) throw new AppException(Error.ARTICLE_NOT_FOUND);
         List<FavoriteDocument> favoriteEntities = favoriteRepository.findAllFavorites();
-        Boolean favorited  = favoriteRepository.findByArticleIdAndAuthorEmail(result.getId(), authUserDetails.getEmail()).isPresent();
+        Boolean favorited = favoriteRepository.findByArticleIdAndAuthorEmail(result.getId(), authUserDetails.getEmail()).isPresent();
         int favoriteCount = (int) favoriteEntities.stream().count();
         return convertEntityToDto(result, favorited, (long) favoriteCount, authUserDetails);
     }
 
 
     private ArticleDto convertEntityToDto(ArticleDocument entity, Boolean favorited, Long favoritesCount, AuthUserDetails authUserDetails) {
-        ProfileDto author = profileService.getProfileByUserIds(entity.getAuthor().getId());
-        return ArticleDto.builder()
+        ArticleDto.ArticleDtoBuilder builder = ArticleDto.builder()
                 .id(entity.getId())
                 .slug(entity.getSlug())
                 .title(entity.getTitle())
                 .description(entity.getDescription())
                 .body(entity.getBody())
-                .author(author)
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .favorited(favorited)
-                .favoritesCount(favoritesCount)
-                .tagList(entity.getTagList().stream().collect(Collectors.toList()))
-                .build();
+                .favoritesCount(favoritesCount);
+
+        ProfileDto author = profileService.getProfileByUserIds(entity.getAuthor().getId());
+        if (author != null) builder.author(author);
+        List<String> taglist = entity.getTagList();
+        if (taglist != null) {
+            builder.tagList(taglist);
+        }
+        return builder.build();
     }
 
     @Transactional
     @Override
     public ArticleDto updateArticle(String slug, ArticleDto.Update article, AuthUserDetails authUserDetails) {
         ArticleDocument found = articleRepository.findBySlug(slug);
-
+        if (found == null) throw new AppException(Error.ARTICLE_NOT_FOUND);
         if (article.getTitle() != null) {
             String newSlug = String.join("-", article.getTitle().split(" "));
             found.setTitle(article.getTitle());
@@ -127,7 +141,7 @@ public class ArticleServiceImpl implements ArticleService {
         if (article.getBody() != null) {
             found.setBody(article.getBody());
         }
-
+        found.setUpdatedAt(new Date());
         articleRepository.save(found);
 
         return getArticle(slug, authUserDetails);
@@ -137,7 +151,8 @@ public class ArticleServiceImpl implements ArticleService {
     @Override
     public void deleteArticle(String slug, AuthUserDetails authUserDetails) {
         ArticleDocument found = articleRepository.findBySlug(slug);
-        System.out.println("This is Slug" + found.getId());
+        if (found == null) throw new AppException(Error.ARTICLE_NOT_FOUND);
+        logger.info("This is Slug" + found.getId());
         articleRepository.delete(found);
     }
 
@@ -145,9 +160,12 @@ public class ArticleServiceImpl implements ArticleService {
     @Override
     public ArticleDto favoriteArticle(String slug, AuthUserDetails authUserDetails) {
         ArticleDocument found = articleRepository.findBySlug(slug);
+        if (found == null) throw new AppException(Error.ARTICLE_NOT_FOUND);
 
         favoriteRepository.findByArticleIdAndAuthorEmail(found.getId(), authUserDetails.getEmail())
-                .ifPresent(favoriteEntity -> { throw new AppException(Error.ALREADY_FAVORITED_ARTICLE);});
+                .ifPresent(favoriteEntity -> {
+                    throw new AppException(Error.ALREADY_FAVORITED_ARTICLE);
+                });
 
         FavoriteDocument favorite = FavoriteDocument.builder()
                 .article(found)
@@ -161,7 +179,6 @@ public class ArticleServiceImpl implements ArticleService {
 
         return getArticle(slug, authUserDetails);
     }
-
 
 
     private List<ArticleDto> convertToArticleList(List<ArticleDocument> articleEntities, AuthUserDetails authUserDetails) {
@@ -180,7 +197,7 @@ public class ArticleServiceImpl implements ArticleService {
         return articleRepository.findByAuthorId(feedAuthorIds, PageRequest.of(feedParams.getOffset(), feedParams.getLimit())).stream().map(entity -> {
 
             List<FavoriteDocument> favoriteEntities = favoriteRepository.findAllFavorites();
-            Boolean favoriteds  = favoriteRepository.findByAuthorEmail(authUserDetails.getEmail()).isPresent();
+            Boolean favoriteds = favoriteRepository.findByAuthorEmail(authUserDetails.getEmail()).isPresent();
             int favoriteCounts = (int) favoriteEntities.stream().count();
 
             return convertEntityToDto(entity, true, (long) favoriteCounts, authUserDetails);
@@ -193,7 +210,7 @@ public class ArticleServiceImpl implements ArticleService {
         List<ArticleDocument> result = articleRepository.findByAuthorId(authUserDetails.getId());
         List<ArticleDocument> articleEntities = articleRepository.findAllArticles();
         List<FavoriteDocument> favoriteEntities = favoriteRepository.findAllFavorites();
-        Boolean favorited  = favoriteRepository.findByAuthorEmail(authUserDetails.getEmail()).isPresent();
+        Boolean favorited = favoriteRepository.findByAuthorEmail(authUserDetails.getEmail()).isPresent();
         int favoriteCount = (int) favoriteEntities.stream().count();
 
         return result.stream().map(articleEntity -> convertEntityToDto(articleEntity, favorited, (long) favoriteCount, authUserDetails)).collect(Collectors.toList());
@@ -225,10 +242,6 @@ public class ArticleServiceImpl implements ArticleService {
                 .tagList(entity.getTagList())
                 .build();
     }
-
-
-
-
 
 
 }

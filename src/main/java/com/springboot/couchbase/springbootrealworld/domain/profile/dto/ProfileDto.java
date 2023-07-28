@@ -1,7 +1,6 @@
 package com.springboot.couchbase.springbootrealworld.domain.profile.dto;
 
 
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

@@ -1,13 +1,13 @@
 package com.springboot.couchbase.springbootrealworld.security;
 
+import jakarta.servlet.*;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
-import javax.servlet.*;
-import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.Optional;
 
@@ -22,7 +22,7 @@ public class JWTAuthFilter extends GenericFilter {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        Optional.ofNullable(((HttpServletRequest)request).getHeader(HttpHeaders.AUTHORIZATION))
+        Optional.ofNullable(((HttpServletRequest) request).getHeader(HttpHeaders.AUTHORIZATION))
                 .filter(authHeader -> authHeader.startsWith(TOKEN_PREFIX))
                 .map(authHeader -> authHeader.substring(TOKEN_PREFIX.length()))
                 .filter(jwtUtils::validateToken)

@@ -2,6 +2,7 @@ package com.springboot.couchbase.springbootrealworld.security;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -13,6 +14,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @RequiredArgsConstructor
 @EnableWebSecurity
+@Configuration
 public class WebSecurityConfiguration {
 
     private final JWTAuthFilter jwtAuthFilter;
@@ -26,16 +28,19 @@ public class WebSecurityConfiguration {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-                .csrf().disable()
-                .formLogin().disable()
-                .authorizeRequests()
-                .antMatchers("/users/**",
-                        "/tags/**",
-                        "/articles/**").permitAll()
-                .anyRequest().authenticated()
-                .and()
-                .exceptionHandling().authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
-                .and()
+                .csrf(c -> c.disable())
+                .formLogin(f -> f.disable())
+                .authorizeRequests(req -> {
+                    try {
+                        req.requestMatchers("/users/**",
+                                        "/tags/**",
+                                        "/articles/**").permitAll()
+                                .anyRequest().authenticated()
+                        ;
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }).exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

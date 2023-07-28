@@ -1,20 +1,24 @@
 package com.springboot.couchbase.springbootrealworld.domain.user.entity;
 
 
-
 import com.springboot.couchbase.springbootrealworld.domain.common.entiity.BaseDocument;
-import lombok.*;
-import org.springframework.data.annotation.Id;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 import org.springframework.data.couchbase.core.mapping.Document;
 import org.springframework.data.couchbase.core.mapping.Field;
-import org.springframework.data.couchbase.core.mapping.id.GeneratedValue;
-import org.springframework.data.couchbase.core.mapping.id.GenerationStrategy;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @Document
+@SuperBuilder
 public class UserDocument extends BaseDocument {
+
+    public final static String USER_COLLECTION_NAME = "user";
+
     @Field
     private String username;
     @Field
@@ -27,8 +31,7 @@ public class UserDocument extends BaseDocument {
     private String image;
 
     @Builder
-    public UserDocument(String id, String username, String email, String password, String bio, String image) {
-        this.id = id;
+    public UserDocument(String username, String email, String password, String bio, String image) {
         this.username = username;
         this.email = email;
         this.password = password;

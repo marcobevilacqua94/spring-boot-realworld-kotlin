@@ -9,15 +9,15 @@ import com.springboot.couchbase.springbootrealworld.security.AuthUserDetails;
 import com.springboot.couchbase.springbootrealworld.security.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Service
 @RequiredArgsConstructor
-@SpringBootApplication(exclude = { SecurityAutoConfiguration.class })
+@SpringBootApplication(exclude = {SecurityAutoConfiguration.class})
 public class UserServiceImpl implements UserService {
     @Autowired
     private final UserRepository userRepository;
@@ -28,10 +28,11 @@ public class UserServiceImpl implements UserService {
     private JwtUtils jwtUtils;
 
 
-
     @Override
     public UserDto registration(final UserDto.Registration registration) {
-        userRepository.findByUsernameOrEmail(registration.getUsername(), registration.getEmail()).stream().findAny().ifPresent(entity -> {throw new AppException(Error.DUPLICATED_USER);});
+        userRepository.findByUsernameOrEmail(registration.getUsername(), registration.getEmail()).stream().findAny().ifPresent(entity -> {
+            throw new AppException(Error.DUPLICATED_USER);
+        });
         UserDocument userEntity = UserDocument.builder()
                 .username(registration.getUsername())
                 .email(registration.getEmail())
@@ -65,14 +66,18 @@ public class UserServiceImpl implements UserService {
         if (update.getUsername() != null) {
             userRepository.findByUsername(update.getUsername())
                     .filter(found -> !found.getId().equals(userDocument.getId()))
-                    .ifPresent(found -> {throw new AppException(Error.DUPLICATED_USER);});
+                    .ifPresent(found -> {
+                        throw new AppException(Error.DUPLICATED_USER);
+                    });
             userDocument.setUsername(update.getUsername());
         }
 
         if (update.getEmail() != null) {
             userRepository.findByEmail(update.getEmail())
                     .filter(found -> !found.getId().equals(userDocument.getId()))
-                    .ifPresent(found -> {throw new AppException(Error.DUPLICATED_USER);});
+                    .ifPresent(found -> {
+                        throw new AppException(Error.DUPLICATED_USER);
+                    });
             userDocument.setEmail(update.getEmail());
         }
 
@@ -90,7 +95,6 @@ public class UserServiceImpl implements UserService {
     }
 
 
-
     private UserDto convertEntityToDto(UserDocument userEntity) {
         return UserDto.builder()
                 .id(userEntity.getId())
@@ -102,7 +106,6 @@ public class UserServiceImpl implements UserService {
                 .token(jwtUtils.encode(userEntity.getEmail()))
                 .build();
     }
-
 
 
 }
