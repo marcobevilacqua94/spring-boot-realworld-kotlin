@@ -8,15 +8,6 @@ USERNAME=${USERNAME:-u`date +%s`}
 EMAIL=${EMAIL:-$USERNAME@mail.com}
 PASSWORD=${PASSWORD:-password}
 
-echo APIURL
-echo USERNAME
-echo PASSWORD
-echo EMAIL
-echo $APIURL
-echo $USERNAME
-echo $PASSWORD
-echo $EMAIL
-
 npx newman run $SCRIPTDIR/Conduit.postman_collection.json \
   --delay-request 500 \
   --global-var "APIURL=$APIURL" \

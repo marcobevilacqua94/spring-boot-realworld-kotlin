@@ -1,122 +1,65 @@
-# Couchbase Springboot Realworld Example app
-Realworld is a backend project using springboot that uses Couchbase for its Database. Couchbase is a NoSQL distributed document database (JSON) with many of the best features of a relational DBMS: SQL, distributed ACID transactions, and much more. For this project we included a frontend in order to visualize you the full stack development and how Real World works
+# ![RealWorld Example App](logo.png)
+
+> ### Spring Data + Couchbase codebase containing real world examples (CRUD, auth, advanced patterns, etc) that adheres to the [RealWorld](https://github.com/gothinkster/realworld) spec and API.
+
+### [Demo](https://demo.realworld.io/)&nbsp;&nbsp;&nbsp;&nbsp;[RealWorld](https://github.com/gothinkster/realworld)
 
 
-## Getting Started
+This codebase was created to demonstrate a realworld backend application built with **Spring Data Couchbase** including CRUD operations, authentication, routing, pagination, and more. For more information on how to this works with other frontends/backends, head over to the [RealWorld](https://github.com/gothinkster/realworld) repo.
 
-### Couchbase
-Couchbase offers different deployment options such as:
-- Couchbase Capella: a fully-managed Database as a Service (DBaaS)
-- Public Cloud: Amazon Web Services(AWS), Google Cloud Platform (GCP), Microsoft Azure, etc.
-- On-Premise: Local Machine Download
-- Virtual Machine/Container: Docker
+# Getting started
 
-Here is the link to have access to Couchbase, make sure to register and understand how these different deployments works. Couchbase has a lot of documentation that will help you all through out.
+This Project requries Java 17, Maven, and a running Couchbase Server instance. See the Setup Couchbase section for more details.
 
-Here is the link for you to access Couchbase ` https://www.couchbase.com/downloads/get-started/ `
+## Configuration
 
+This project needs a configured Couchbase configuration to run properly. There are different ways you can do it. Provide a properties file with the following content:
 
-### BackEnd
-To get the backend running locally, clone this repo ` git clone https://github.com/maruakinu/couchbase-springboot-realworld-example-app.git `
-and make sure your Couchbase Capella or Enterprise Edition/docker is running.
-
-For this project we are using Couchbase on a docker container which also works on a Couchbase Enterprise Edition. If you want to connect to your Couchbase Capella, comment this code in MyCouchbaseConfig
-
-```
-    public String getConnectionString() {
-        return "couchbase://127.0.0.1";
-    }
-
-    ;
-
-    public String getUserName() {
-        return "Administrator";
-    }
-
-    public String getPassword() {
-        return "123456";
-    }
-
-    ;
-
-    public String getBucketName() {
-        return "realworld";
-    }
-```
-Then uncomment this connection for the Couchbase Capella to work. This code may differ since this is my configuration to my own account in Couchbase Capella.
-
-```
-    @Override
-    protected void configureEnvironment(final ClusterEnvironment.Builder builder) {
-        builder.securityConfig().enableTls(true);
-        builder.ioConfig(IoConfig.enableDnsSrv(true)).build();
-    }
-
-    public String getConnectionString() {
-        return "cb.vur7gichywrwexc6.cloud.couchbase.com";
-    };
-
-    public String getUserName() {
-        return "Administrator";
-    }
-
-    public String getPassword() {
-        return "Couchbase123`";
-    };
-
-    public String getBucketName() {
-        return "realworld";
-    };
-    
-}
+```properties
+couchbase.connectionString=couchbase://localhost
+couchbase.username=Administrator
+couchbase.password=password
+couchbase.defaultBucket=default
+couchbase.defaultScope=_default
 ```
 
-To get your Connection string in your Couchbase Capella, go to your settings, go to internet, and make allow your current IP address then copy your connection string and then change your code into the connection string that will be given to you `return "couchbases://cb.wxif3r-rblv1zaqs.cloud.couchbase.com";`. 
+or make sure you have the following environment variables configured:
+```
+export COUCHBASE_CONNECTIONSTRING=couchbase://localhost
+export COUCHBASE_USERNAME=Administrator
+export COUCHBASE_PASSWORD=password
+export COUCHBASE_DEFAULTBUCKET=default
+export COUCHBASE_DEFAULTSCOPE=_default
+```
 
-You will also need to create a database access for this one and in order to configure it, go to your settings, then go to database access under security, then create your database acess. Make sure that your access is a Read/Write, and whatever user you made, make sure to also change it in the couchbase config.  
+### Test Configuration
+
+To run the postman test, you need to setup the following environment variables:
 
 ```
-public String getUserName() {
-        return "Administrator";  };
+APIURL=http://localhost:8080/api
+USERNAME=username
+EMAIL=useremail@domain.com
+PASSWORD=userPass
+```
 
-public String getPassword() {
-        return "123456,"; };
-```        
+## Run
 
- once you are done, find the CouchbaseProjectApplication.java and start running your backend from the IDE you are using.
- 
- ## application.properties
- 
- Under resources, make sure to change your application.properties depending on the Bucket, Connection String and Account you have made in your Couchbase, this also works on Couchbase Capella.
- 
-`spring.couchbase.bootstrap-hosts=cb.vur7gichywrwexc6.cloud.couchbase.com
-spring.couchbase.bucket.name=realworld
-spring.couchbase.bucket.user=Administrator
-spring.couchbase.bucket.password=Couchbase123`
- 
- ## Connecting your Scope and Collection
- 
- In order for you to connect through your Couchbase Bucket, make sure to change your scope and collection in every repository depending on the Scope and Collection you created in Couchbase. 
- Here is an example of the code from the repository that you will be changing: 
-`@Scope("sample")
-@Collection("article")`
+1. Run `mvn package` in the project folder to build the project
+1. Run `java --add-opens java.base/java.lang=ALL-UNNAMED -jar target/*.jar`
+2. Run `./postman/run-api-tests.sh` to run Postman collection tests
 
-## Postman Requests
+The reason we need to add the `--add-opens java.base/java.lang=ALL-UNNAMED` parameters can be found on this article: https://www.springcloud.io/post/2022-07/inaccessibleobjectexception/
 
-Our example API request can be download here: ` https://drive.google.com/drive/folders/1sNoQd9ytj8MXa5Psn0vUY6WuP1-tmTjg?usp=share_link `
+## Setup Couchbase
 
- 
-## Functionality overview
+There are multiple ways to create a Couchbase instance.
 
-Real World application is a social blogging site just like the social platform Medium.com clone. It uses a custom API for all requests, including authentication. For testing purposes on how the API works, you can visit ` https://api.realworld.io/api-docs/#/ ` before testing out the full stack development. You can also use Postman for the API testing in the backend before running the frontend.
+### Using Docker
 
-**General functionality:**
+You can use our [official Docker image](https://hub.docker.com/_/couchbase) by running `docker run -d --name db -p 8091-8097:8091-8097 -p 9123:9123 -p 11207:11207 -p 11210:11210 -p 11280:11280 -p 18091-18097:18091-18097 couchbase`
+Then you can go to http://localhost:8091 and start setting up your cluster. Take a look at the hub page for more details.
 
-- Authenticate users via JWT (login/signup pages + logout button on settings page)
-- CRUD users (sign up & settings page - no deleting required)
-- CRUD Articles
-- CRUD Comments on articles (no updating required)
-- GET and display paginated lists of articles
-- Favorite articles
-- Follow other users
+### Using Couchbase Capella
 
+Go to https://cloud.couchbase.com. From there you can setup a trial account and get a 30days free instance, no Credit Card required. Check out our getting started here:
