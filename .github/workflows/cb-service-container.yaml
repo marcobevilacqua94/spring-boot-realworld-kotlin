@@ -38,7 +38,8 @@ jobs:
         cache: 'maven'
     - name: Postman Tests
       run: |
-        mvn --batch-mode --update-snapshots -B spring-boot:run --file pom.xml verify  &
+        mvn --batch-mode --update-snapshots -B package --file pom.xml verify
+        java --add-opens java.base/java.lang=ALL-UNNAMED  -jar target/*.jar &
         chmod +x ./postman/run-api-tests.sh ./testConnection.sh
         timeout 5m ./testConnection.sh $APIURL/articles
         ./postman/run-api-tests.sh
