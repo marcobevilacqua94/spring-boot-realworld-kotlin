@@ -16,6 +16,7 @@ env:
   COUCHBASE_DEFAULTBUCKET: ${{ secrets.COUCHBASE_DEFAULTBUCKET }}
   COUCHBASE_DEFAULTSCOPE:  ${{ vars.GITHUB_HEAD_REF || '_default' }}
   COUCHBASE_USECAPELLA: ${{ vars.COUCHBASE_USECAPELLA }}
+  APIURL: "http://127.0.0.1:8080/api"
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -38,6 +39,6 @@ jobs:
       run: |
         mvn --batch-mode --update-snapshots -B spring-boot:run --file pom.xml verify  &
         chmod +x ./postman/run-api-tests.sh ./testConnection.sh
-        timeout 5m ./testConnection.sh
-        APIURL="http://127.0.0.1:4000/api" ./postman/run-api-tests.sh
+        timeout 5m ./testConnection.sh $APIURL/articles
+        ./postman/run-api-tests.sh
 
