@@ -37,6 +37,7 @@ jobs:
     - name: Postman Tests
       run: |
         mvn --batch-mode --update-snapshots -B spring-boot:run --file pom.xml verify  &
-        chmod +x ./postman/run-api-tests.sh
+        chmod +x ./postman/run-api-tests.sh ./testConnection.sh
+        timeout 5m ./testConnection.sh
         APIURL="http://127.0.0.1:4000/api" ./postman/run-api-tests.sh
 
