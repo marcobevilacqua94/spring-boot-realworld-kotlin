@@ -29,13 +29,13 @@ jobs:
     - name: Update repositories
       run: |
         apt update || echo "apt-update failed" # && apt -y upgrade
+    - uses: actions/checkout@v3
     - name: Set up JDK
       uses: actions/setup-java@v3
       with:
         java-version: ${{ matrix.java-version }}
         distribution: 'adopt'
         cache: 'maven'
-    - uses: actions/checkout@v3
     - name: Postman Tests
       run: |
         mvn --batch-mode --update-snapshots -B spring-boot:run --file pom.xml verify  &
