@@ -34,6 +34,7 @@ jobs:
       with:
         java-version: ${{ matrix.java-version }}
         distribution: 'adopt'
+        cache: 'maven'
     - uses: actions/checkout@v3
     - name: Postman Tests
       run: |
