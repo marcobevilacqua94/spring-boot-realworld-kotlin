@@ -1,19 +1,15 @@
-package com.springboot.couchbase.springbootrealworld.domain.user.service;
+package com.springboot.couchbase.springbootrealworld.domain.user.service
 
+import com.springboot.couchbase.springbootrealworld.domain.user.dto.UserDto
+import com.springboot.couchbase.springbootrealworld.security.AuthUserDetails
 
-import com.springboot.couchbase.springbootrealworld.domain.user.dto.UserDto;
-import com.springboot.couchbase.springbootrealworld.security.AuthUserDetails;
+interface UserService {
 
-public interface UserService {
+    fun registration(registration: UserDto.Registration): UserDto
 
+    fun login(login: UserDto.Login): UserDto
 
-    UserDto registration(final UserDto.Registration registration);
+    fun currentUser(authUserDetails: AuthUserDetails): UserDto
 
-    UserDto login(final UserDto.Login login);
-
-    UserDto currentUser(final AuthUserDetails authUserDetails);
-
-
-    UserDto update(final UserDto.Update update, final AuthUserDetails authUserDetails);
-
+    fun update(update: UserDto.Update, authUserDetails: AuthUserDetails): UserDto
 }

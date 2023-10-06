@@ -1,35 +1,34 @@
-package com.springboot.couchbase.springbootrealworld.domain.article.repository;
+package com.springboot.couchbase.springbootrealworld.domain.article.repository
 
-import com.springboot.couchbase.springbootrealworld.domain.article.entity.ArticleDocument;
-import org.springframework.data.couchbase.repository.Collection;
-import org.springframework.data.couchbase.repository.CouchbaseRepository;
+import com.springboot.couchbase.springbootrealworld.domain.article.entity.ArticleDocument
 import org.springframework.data.couchbase.repository.Query;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Repository;
-
-import java.util.List;
+import org.springframework.data.couchbase.repository.Collection
+import org.springframework.data.couchbase.repository.ReactiveCouchbaseRepository
+import org.springframework.data.domain.Pageable
+import org.springframework.stereotype.Repository
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 
 @Repository
 @Collection(ArticleDocument.ARTICLE_COLLECTION_NAME)
-public interface ArticleRepository extends CouchbaseRepository<ArticleDocument, String> {
-    ArticleDocument findBySlug(String slug);
+interface ArticleRepository : ReactiveCouchbaseRepository<ArticleDocument, String> {
 
-    List<ArticleDocument> findByAuthorId(String author);
+    fun findBySlug(slug: String): Mono<ArticleDocument>
+
+    fun findByAuthorId(author: String): Flux<ArticleDocument>
 
     @Query("#{#n1ql.selectEntity} WHERE title IS NOT NULL AND #{#n1ql.filter} ORDER BY createdAt DESC")
-    ArticleDocument findBySlugs();
+    fun findBySlugs(): Mono<ArticleDocument>
 
     @Query("#{#n1ql.selectEntity} WHERE title IS NOT NULL AND #{#n1ql.filter}")
-    List<ArticleDocument> findByAuthorId(List<String> id, Pageable pageable);
+    fun findByAuthorId(ids: List<String>, pageable: Pageable): Flux<ArticleDocument>
 
     @Query("#{#n1ql.selectEntity} WHERE title IS NOT NULL AND #{#n1ql.filter} ORDER BY createdAt DESC")
-    List<ArticleDocument> findAllArticles();
+    fun findAllArticles(): Flux<ArticleDocument>
 
     @Query("#{#n1ql.selectEntity} WHERE title IS NOT NULL AND #{#n1ql.filter} ORDER BY createdAt DESC")
-    List<ArticleDocument> findAllArticlesYouFollow();
+    fun findAllArticlesYouFollow(): Flux<ArticleDocument>
 
     @Query("#{#n1ql.selectEntity} WHERE title IS NOT NULL AND #{#n1ql.filter}")
-    List<ArticleDocument> findAllTags();
-
-
+    fun findAllTags(): Flux<ArticleDocument>
 }

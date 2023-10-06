@@ -1,19 +1,12 @@
-package com.springboot.couchbase.springbootrealworld.domain.profile.service;
+package com.springboot.couchbase.springbootrealworld.domain.profile.service
 
+import com.springboot.couchbase.springbootrealworld.domain.profile.dto.ProfileDto
+import com.springboot.couchbase.springbootrealworld.security.AuthUserDetails
 
-import com.springboot.couchbase.springbootrealworld.domain.profile.dto.ProfileDto;
-import com.springboot.couchbase.springbootrealworld.security.AuthUserDetails;
-
-public interface ProfileService {
-
-    ProfileDto getProfile(final String username, final AuthUserDetails authUserDetails);
-
-    ProfileDto followUser(final String name, final AuthUserDetails authUserDetails);
-
-    ProfileDto unfollowUser(final String name, final AuthUserDetails authUserDetails);
-
-    ProfileDto getProfileByUserId(String userId, AuthUserDetails authUserDetails);
-
-
-    ProfileDto getProfileByUserIds(String userId);
+interface ProfileService {
+    fun getProfile(username: String, authUserDetails: AuthUserDetails): ProfileDto
+    fun followUser(name: String, authUserDetails: AuthUserDetails): ProfileDto
+    fun unfollowUser(name: String, authUserDetails: AuthUserDetails): ProfileDto
+    fun getProfileByUserId(userId: String, authUserDetails: AuthUserDetails): ProfileDto
+    fun getProfileByUserIds(userId: String): ProfileDto
 }

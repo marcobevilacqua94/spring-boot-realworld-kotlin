@@ -1,24 +1,18 @@
-package com.springboot.couchbase.springbootrealworld.security;
+package com.springboot.couchbase.springbootrealworld.security
 
-
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.stereotype.Component;
-
-import java.util.Optional;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.Authentication
+import org.springframework.security.core.userdetails.UserDetailsService
+import org.springframework.stereotype.Component
 
 @Component
-@RequiredArgsConstructor
-public class AuthenticationProvider {
-    private final UserDetailsService userDetailsService;
+class AuthenticationProvider(private val userDetailsService: UserDetailsService) {
 
-    public Authentication getAuthentication(String username) {
-        return Optional.ofNullable(username)
-                .map(userDetailsService::loadUserByUsername)
-                .map(userDetails ->
-                        new UsernamePasswordAuthenticationToken(userDetails, userDetails.getPassword(), userDetails.getAuthorities()))
-                .orElse(null);
+    fun getAuthentication(username: String?): Authentication? {
+        return username?.let {
+            userDetailsService.loadUserByUsername(it)?.let { userDetails ->
+                UsernamePasswordAuthenticationToken(userDetails, userDetails.password, userDetails.authorities)
+            }
+        }
     }
 }

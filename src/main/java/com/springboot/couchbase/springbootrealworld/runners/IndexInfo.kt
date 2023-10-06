@@ -1,52 +1,39 @@
-package com.springboot.couchbase.springbootrealworld.runners;
+package com.springboot.couchbase.springbootrealworld.runners
 
-import java.util.Map;
+class IndexInfo(val name: String, val bucket: String, val status: String, val lastScanTime: String) {
 
-public class IndexInfo {
-    public final String name;
-    public final String bucket;
-    public final String status;
-    public final String lastScanTime;
-
-    public IndexInfo(String name, String bucket, String status, String lastScanTime) {
-        this.name = name;
-        this.bucket = bucket;
-        this.status = status;
-        this.lastScanTime = lastScanTime;
+    companion object {
+        fun create(asMap: Map<*, *>): IndexInfo {
+            val name = asMap["index"] as String
+            val bucket = asMap["bucket"] as String
+            val status = asMap["status"] as String
+            val lastScanTime = asMap["lastScanTime"] as String
+            return IndexInfo(name, bucket, status, lastScanTime)
+        }
     }
 
-    public static IndexInfo create(Map<?, ?> asMap) {
-        String name = (String) asMap.get("index");
-        String bucket = (String) asMap.get("bucket");
-        String status = (String) asMap.get("status");
-        String lastScanTime = (String) asMap.get("lastScanTime");
-        return new IndexInfo(name, bucket, status, lastScanTime);
+    fun getName(): String {
+        return name
     }
 
-    public String getName() {
-        return name;
+    fun getBucket(): String {
+        return bucket
     }
 
-    public String getBucket() {
-        return bucket;
+    fun getStatus(): String {
+        return status
     }
 
-    public String getStatus() {
-        return status;
+    fun getQualified(): String {
+        return "$bucket:$name"
     }
 
-    public String getQualified() {
-        return bucket + ":" + name;
-    }
-
-    @Override
-    public String toString() {
+    override fun toString(): String {
         return "IndexInfo{" +
-                "name='" + name + '\'' +
-                ", bucket='" + bucket + '\'' +
-                ", status='" + status + '\'' +
-                ", lastScanTime='" + lastScanTime + '\'' +
-                '}';
+                "name='$name'" +
+                ", bucket='$bucket'" +
+                ", status='$status'" +
+                ", lastScanTime='$lastScanTime'" +
+                '}'
     }
 }
-

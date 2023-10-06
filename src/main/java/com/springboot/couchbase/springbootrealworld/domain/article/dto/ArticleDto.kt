@@ -1,77 +1,44 @@
-package com.springboot.couchbase.springbootrealworld.domain.article.dto;
+package com.springboot.couchbase.springbootrealworld.domain.article.dto
 
+import com.fasterxml.jackson.annotation.JsonFormat
+import com.springboot.couchbase.springbootrealworld.domain.profile.dto.ProfileDto
+import lombok.Builder
+import java.util.*
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.springboot.couchbase.springbootrealworld.configuration.CouchbaseConfig;
-import com.springboot.couchbase.springbootrealworld.domain.profile.dto.ProfileDto;
-import lombok.*;
+data class ArticleDto(
+        var id: String?,
+        var slug: String?,
+        var title: String?,
+        var description: String?,
+        var body: String?,
+        var tagList: List<String>?,
 
-import java.util.Date;
-import java.util.List;
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = CouchbaseConfig.ISO_8601_PATTERN)
+        var createdAt: Date?,
 
-@Setter
-@Getter
-@Builder
-@ToString
-public class ArticleDto {
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = CouchbaseConfig.ISO_8601_PATTERN)
+        var updatedAt: Date?,
 
-    protected String id;
-    private String slug;
-    private String title;
-    private String description;
-    private String body;
+        var favorited: Boolean?,
+        var favoritesCount: Long?,
+        var author: ProfileDto?
+) {
+    data class SingleArticle<T>(
+            var article: T?
+    )
 
-    private List<String> tagList;
+    data class MultipleArticle(
+            var articles: List<ArticleDto>?,
+            var articlesCount: Int
+    )
 
+    data class TagList(
+            var tags: List<String>?
+    )
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = CouchbaseConfig.ISO_8601_PATTERN)
-    private Date createdAt;
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = CouchbaseConfig.ISO_8601_PATTERN)
-    private Date updatedAt;
-    private Boolean favorited;
-    private Long favoritesCount;
-    private ProfileDto author;
-
-    @Getter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @ToString
-    public static class SingleArticle<T> {
-        private T article;
-    }
-
-    @Getter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @ToString
-    public static class MultipleArticle {
-        private List<ArticleDto> articles;
-        private int articlesCount;
-
-    }
-
-    @Getter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @ToString
-    public static class TagList {
-        List<String> tags;
-    }
-
-    @Getter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @ToString
-    public static class Update {
-        private String title;
-        private String description;
-        private String body;
-    }
-
-
+    data class Update(
+            var title: String?,
+            var description: String?,
+            var body: String?
+    )
 }
-

@@ -1,94 +1,108 @@
-package com.springboot.couchbase.springbootrealworld.runners;
+package com.springboot.couchbase.springbootrealworld.runners
 
-import com.couchbase.client.core.error.IndexesNotReadyException;
-import com.couchbase.client.core.retry.reactor.Retry;
-import com.couchbase.client.core.retry.reactor.RetryExhaustedException;
-import com.couchbase.client.java.Cluster;
-import com.couchbase.client.java.http.CouchbaseHttpClient;
-import com.couchbase.client.java.http.HttpPath;
-import com.couchbase.client.java.http.HttpResponse;
-import com.couchbase.client.java.http.HttpTarget;
-import com.couchbase.client.java.json.JsonObject;
-import reactor.core.publisher.Mono;
+import com.couchbase.client.core.error.IndexesNotReadyException
+import com.couchbase.client.core.retry.reactor.Retry
+import com.couchbase.client.core.retry.reactor.RetryExhaustedException
+import com.couchbase.client.java.Cluster
+import com.couchbase.client.java.http.CouchbaseHttpClient
+import com.couchbase.client.java.http.HttpPath
+import com.couchbase.client.java.http.HttpResponse
+import com.couchbase.client.java.http.HttpTarget
+import com.couchbase.client.java.json.JsonObject
+import reactor.core.publisher.Mono
+import java.sql.SQLException
+import java.time.Duration
+import java.util.concurrent.TimeoutException
 
-import java.sql.SQLException;
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeoutException;
+import com.couchbase.client.core.logging.RedactableArgument.redactMeta
+import com.couchbase.client.core.util.CbThrowables.findCause
+import com.couchbase.client.core.util.CbThrowables.hasCause
+import java.util.stream.Collectors.toList
+import java.util.Collections.singletonMap
+import java.util.stream.Collectors.toMap
 
-import static com.couchbase.client.core.logging.RedactableArgument.redactMeta;
-import static com.couchbase.client.core.util.CbThrowables.findCause;
-import static com.couchbase.client.core.util.CbThrowables.hasCause;
-import static java.util.Collections.singletonMap;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
+object IndexCommons {
 
-class IndexCommons {
-    static void waitUntilReady(Cluster cluster, String bucketName, Duration timeout) {
-        waitInner(timeout, () -> failIfIndexesOffline(cluster.httpClient(), bucketName));
+    fun waitUntilReady(cluster: Cluster, bucketName: String, timeout: Duration) {
+        waitInner(timeout) { failIfIndexesOffline(cluster.httpClient(), bucketName) }
     }
 
-    static void waitUntilOffline(Cluster cluster, String bucketName, Duration timeout) {
-        waitInner(timeout, () -> failIfIndexesPresent(cluster.httpClient(), bucketName));
+    fun waitUntilOffline(cluster: Cluster, bucketName: String, timeout: Duration) {
+        waitInner(timeout) { failIfIndexesPresent(cluster.httpClient(), bucketName) }
     }
 
-    private static void waitInner(Duration timeout, Runnable runnable) {
-        Mono.fromRunnable(runnable).retryWhen(Retry.onlyIf(ctx -> hasCause(ctx.exception(), IndexesNotReadyException.class)).exponentialBackoff(Duration.ofMillis(50), Duration.ofSeconds(3)).timeout(timeout).toReactorRetry()).onErrorMap(t -> t instanceof RetryExhaustedException ? toWatchTimeoutException(t, timeout) : t).block();
+    private fun waitInner(timeout: Duration, runnable: () -> Unit) {
+        Mono.fromRunnable(runnable)
+                .retryWhen(Retry.onlyIf { ctx -> hasCause(ctx.exception(), IndexesNotReadyException::class.java) }
+                        .exponentialBackoff(Duration.ofMillis(50), Duration.ofSeconds(3))
+                        .timeout(timeout)
+                        .toReactorRetry())
+                .onErrorMap { t ->
+                    if (t is RetryExhaustedException) toWatchTimeoutException(t, timeout) else t
+                }
+                .block()
     }
 
-    private static TimeoutException toWatchTimeoutException(Throwable t, Duration timeout) {
-        final StringBuilder msg = new StringBuilder("A requested index is still not ready after " + timeout + ".");
-
-        findCause(t, IndexesNotReadyException.class).ifPresent(cause -> msg.append(" Unready index name -> state: ").append(redactMeta(cause.indexNameToState())));
-
-        return new TimeoutException(msg.toString());
+    private fun toWatchTimeoutException(t: Throwable, timeout: Duration): TimeoutException {
+        val msg = "A requested index is still not ready after $timeout."
+        findCause(t, IndexesNotReadyException::class.java).ifPresent { cause ->
+            msg.append(" Unready index name -> state: ${redactMeta(cause.indexNameToState())}")
+        }
+        return TimeoutException(msg.toString())
     }
 
-    private static void failIfIndexesPresent(CouchbaseHttpClient httpClient, String bucketName) {
-        Map<String, String> matchingIndexes = getMatchingIndexInfo(httpClient, bucketName).stream().collect(toMap(IndexInfo::getQualified, IndexInfo::getStatus));
+    private fun failIfIndexesPresent(httpClient: CouchbaseHttpClient, bucketName: String) {
+        val matchingIndexes = getMatchingIndexInfo(httpClient, bucketName)
+                .stream()
+                .collect(toMap(IndexInfo::qualified, IndexInfo::status))
 
-        if (!matchingIndexes.isEmpty()) {
-            throw new IndexesNotReadyException(matchingIndexes);
+        if (matchingIndexes.isNotEmpty()) {
+            throw IndexesNotReadyException(matchingIndexes)
         }
     }
 
-    private static void failIfIndexesOffline(CouchbaseHttpClient httpClient, String bucketName) throws IndexesNotReadyException {
-        List<IndexInfo> matchingIndexes = getMatchingIndexInfo(httpClient, bucketName);
+    @Throws(IndexesNotReadyException::class)
+    private fun failIfIndexesOffline(httpClient: CouchbaseHttpClient, bucketName: String) {
+        val matchingIndexes = getMatchingIndexInfo(httpClient, bucketName)
         if (matchingIndexes.isEmpty()) {
-            throw new IndexesNotReadyException(singletonMap("#primary", "notFound"));
+            throw IndexesNotReadyException(singletonMap("#primary", "notFound"))
         }
 
-        final Map<String, String> offlineIndexNameToState = matchingIndexes.stream().filter(idx -> !"Ready".equals(idx.status)).collect(toMap(IndexInfo::getQualified, IndexInfo::getStatus));
+        val offlineIndexNameToState = matchingIndexes
+                .filter { idx -> idx.status != "Ready" }
+                .associateBy({ it.qualified }, { it.status })
 
-        if (!offlineIndexNameToState.isEmpty()) {
-            throw new IndexesNotReadyException(offlineIndexNameToState);
+        if (offlineIndexNameToState.isNotEmpty()) {
+            throw IndexesNotReadyException(offlineIndexNameToState)
         }
     }
 
-    static List<Object> getIndexes(CouchbaseHttpClient httpClient) throws SQLException {
+    fun getIndexes(httpClient: CouchbaseHttpClient): List<Any> {
         try {
-            HttpResponse response = httpClient.get(HttpTarget.manager(), HttpPath.of("/indexStatus"));
+            val response = httpClient.get(HttpTarget.manager(), HttpPath.of("/indexStatus"))
             if (!response.success()) {
-                throw new SQLException("Failed to retrieve index information: " + "Response status=" + response.statusCode() + " " + "Response body=" + response.contentAsString());
+                throw SQLException("Failed to retrieve index information: Response status=${response.statusCode()} Response body=${response.contentAsString()}")
             }
-            return JsonObject.fromJson(response.content()).getArray("indexes").toList();
-        } catch (SQLException ex) {
-            throw ex;
-        } catch (Exception ex) {
-            throw new SQLException(ex);
+            return JsonObject.fromJson(response.content()).getArray("indexes").toList()
+        } catch (ex: SQLException) {
+            throw ex
+        } catch (ex: Exception) {
+            throw SQLException(ex)
         }
     }
 
-    private static List<IndexInfo> getMatchingIndexInfo(CouchbaseHttpClient httpClient, String bucketName) {
-        List<Object> list;
+    private fun getMatchingIndexInfo(httpClient: CouchbaseHttpClient, bucketName: String): List<IndexInfo> {
+        val list: List<Any>
         try {
-            list = getIndexes(httpClient);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
+            list = getIndexes(httpClient)
+        } catch (e: SQLException) {
+            throw RuntimeException(e)
         }
 
-        return list.stream().filter(i -> i instanceof Map<?, ?>).map(i -> IndexInfo.create((Map<?, ?>) i)).filter(i -> bucketName.equals(i.bucket) && "#primary".equals(i.name)).collect(toList());
+        return list.stream()
+                .filter { i -> i is Map<*, *> }
+                .map { i -> IndexInfo.create(i as Map<*, *>) }
+                .filter { i -> bucketName == i.bucket && "#primary" == i.name }
+                .collect(toList())
     }
 }
-

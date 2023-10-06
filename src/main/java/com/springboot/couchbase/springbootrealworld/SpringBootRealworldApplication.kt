@@ -1,17 +1,16 @@
-package com.springboot.couchbase.springbootrealworld;
+package com.springboot.couchbase.springbootrealworld
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.boot.SpringApplication
+import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan
+import org.springframework.transaction.annotation.EnableTransactionManagement
+import org.springframework.web.bind.annotation.CrossOrigin
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
 @EnableTransactionManagement
-public class SpringBootRealworldApplication {
+class SpringBootRealworldApplication
 
-    public static void main(String[] args) {
-        SpringApplication.run(SpringBootRealworldApplication.class, args);
-    }
-
+fun main(args: Array<String>) {
+    SpringApplication.run(SpringBootRealworldApplication::class.java, *args)
 }

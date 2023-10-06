@@ -1,69 +1,52 @@
-package com.springboot.couchbase.springbootrealworld.security;
+package com.springboot.couchbase.springbootrealworld.security
 
-import lombok.Builder;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.GrantedAuthority
+import org.springframework.security.core.userdetails.UserDetails
 
-import java.util.Collection;
+class AuthUserDetails(
+        private val id: String,
+        val email: String,
+        private val bio: String
+) : UserDetails {
 
-public class AuthUserDetails implements UserDetails {
-    private final String id;
-    private final String email;
-
-    private final String bio;
-
-    @Builder
-    public AuthUserDetails(String id, String email, String bio) {
-        this.id = id;
-        this.email = email;
-        this.bio = bio;
+    override fun getId(): String {
+        return id
     }
 
-    public String getId() {
-        return id;
+    override fun getEmail(): String {
+        return email
     }
 
-    public String getEmail() {
-        return email;
+    override fun getBio(): String {
+        return bio
     }
 
-    public String getBio() {
-        return bio;
-    }
-
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
+    override fun getAuthorities(): Collection<GrantedAuthority>? {
         // no authority in this project
-        return null;
+        return null
     }
 
-    @Override
-    public String getPassword() {
-        return null;
+    override fun getPassword(): String? {
+        return null
     }
 
-    @Override
-    public String getUsername() {
-        return email;
+    override fun getUsername(): String {
+        return email
     }
 
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
+    override fun isAccountNonExpired(): Boolean {
+        return true
     }
 
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
+    override fun isAccountNonLocked(): Boolean {
+        return true
     }
 
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
+    override fun isCredentialsNonExpired(): Boolean {
+        return true
     }
 
-    @Override
-    public boolean isEnabled() {
-        return true;
+    override fun isEnabled(): Boolean {
+        return true
     }
 }

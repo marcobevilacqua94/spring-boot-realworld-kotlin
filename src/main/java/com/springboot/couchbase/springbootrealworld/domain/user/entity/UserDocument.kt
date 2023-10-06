@@ -1,41 +1,19 @@
-package com.springboot.couchbase.springbootrealworld.domain.user.entity;
+package com.springboot.couchbase.springbootrealworld.domain.user.entity
 
+import com.springboot.couchbase.springbootrealworld.domain.common.entiity.BaseDocument
+import org.springframework.data.couchbase.core.mapping.Document
+import org.springframework.data.couchbase.core.mapping.Field
 
-import com.springboot.couchbase.springbootrealworld.domain.common.entiity.BaseDocument;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.experimental.SuperBuilder;
-import org.springframework.data.couchbase.core.mapping.Document;
-import org.springframework.data.couchbase.core.mapping.Field;
-
-@Getter
-@Setter
-@NoArgsConstructor
 @Document
-@SuperBuilder
-public class UserDocument extends BaseDocument {
+data class UserDocument(
+        @Field val username: String?,
+        @Field val email: String?,
+        @Field val password: String?,
+        @Field val bio: String?,
+        @Field val image: String?
+) : BaseDocument() {
 
-    public final static String USER_COLLECTION_NAME = "user";
-
-    @Field
-    private String username;
-    @Field
-    private String email;
-    @Field
-    private String password;
-    @Field
-    private String bio;
-    @Field
-    private String image;
-
-    @Builder
-    public UserDocument(String username, String email, String password, String bio, String image) {
-        this.username = username;
-        this.email = email;
-        this.password = password;
-        this.bio = bio;
-        this.image = image;
+    companion object {
+        const val USER_COLLECTION_NAME = "user"
     }
 }

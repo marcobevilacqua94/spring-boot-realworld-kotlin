@@ -1,32 +1,26 @@
-package com.springboot.couchbase.springbootrealworld.domain.article.service;
+package com.springboot.couchbase.springbootrealworld.domain.article.service
 
-import com.springboot.couchbase.springbootrealworld.domain.article.dto.ArticleDto;
-import com.springboot.couchbase.springbootrealworld.domain.article.model.FeedParams;
-import com.springboot.couchbase.springbootrealworld.security.AuthUserDetails;
+import com.springboot.couchbase.springbootrealworld.domain.article.dto.ArticleDto
+import com.springboot.couchbase.springbootrealworld.domain.article.model.FeedParams
+import com.springboot.couchbase.springbootrealworld.security.AuthUserDetails
 
-import java.util.List;
+interface ArticleService {
 
-public interface ArticleService {
+    fun createArticle(article: ArticleDto, authUserDetails: AuthUserDetails): ArticleDto
 
-    ArticleDto createArticle(final ArticleDto article, final AuthUserDetails authUserDetails);
+    fun getArticle(slug: String, authUserDetails: AuthUserDetails): ArticleDto
 
-    ArticleDto getArticle(final String slug, final AuthUserDetails authUserDetails);
-    ArticleDto getArticleFavorite(final String slug, final AuthUserDetails authUserDetails);
+    fun getArticleFavorite(slug: String, authUserDetails: AuthUserDetails): ArticleDto
 
-    ArticleDto updateArticle(final String slug, final ArticleDto.Update article, final AuthUserDetails authUserDetails);
+    fun updateArticle(slug: String, article: ArticleDto.Update, authUserDetails: AuthUserDetails): ArticleDto
 
-    void deleteArticle(final String slug, final AuthUserDetails authUserDetails);
+    fun deleteArticle(slug: String, authUserDetails: AuthUserDetails)
 
-    ArticleDto favoriteArticle(final String slug, final AuthUserDetails authUserDetails);
+    fun favoriteArticle(slug: String, authUserDetails: AuthUserDetails): ArticleDto
 
-    List<ArticleDto> feedArticles(final AuthUserDetails authUserDetails, final FeedParams feedParams);
+    fun feedArticles(authUserDetails: AuthUserDetails, feedParams: FeedParams): List<ArticleDto>
 
-    List<ArticleDto> getAllArticles(final AuthUserDetails authUserDetails);
+    fun getAllArticles(authUserDetails: AuthUserDetails): List<ArticleDto>
 
-    List<ArticleDto> getAllArticlesYouFollow();
-
-
-
-
-
+    fun getAllArticlesYouFollow(): List<ArticleDto>
 }

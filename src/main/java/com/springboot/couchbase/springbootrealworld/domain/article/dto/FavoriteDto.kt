@@ -1,32 +1,17 @@
-package com.springboot.couchbase.springbootrealworld.domain.article.dto;
+package com.springboot.couchbase.springbootrealworld.domain.article.dto
 
+import com.springboot.couchbase.springbootrealworld.domain.profile.dto.ProfileDto
 
-import com.springboot.couchbase.springbootrealworld.domain.profile.dto.ProfileDto;
-import lombok.*;
+data class FavoriteDto(
+        var id: String?,
+        var body: String?,
+        var author: ProfileDto?
+) {
+    data class SingleFavorite(
+            var favorite: FavoriteDto?
+    )
 
-import java.util.List;
-
-@Getter
-@Setter
-@Builder
-public class FavoriteDto {
-    private String id;
-    private String body;
-    private ProfileDto author;
-
-    @Getter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class SingleFavorite {
-        FavoriteDto favorite;
-    }
-
-    @Getter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class MultipleFavorites {
-        List<FavoriteDto> favorites;
-    }
+    data class MultipleFavorites(
+            var favorites: List<FavoriteDto>?
+    )
 }

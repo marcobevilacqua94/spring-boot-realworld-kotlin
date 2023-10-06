@@ -1,73 +1,46 @@
-package com.springboot.couchbase.springbootrealworld.runners;
+package com.springboot.couchbase.springbootrealworld.runners
 
-import com.couchbase.client.core.error.CouchbaseException;
-import com.couchbase.client.core.error.context.ErrorContext;
-import org.jetbrains.annotations.NotNull;
+import com.couchbase.client.core.error.CouchbaseException
 
-import java.util.*;
+data class CouchbaseError(val errorEntries: List<ErrorEntry>) {
+    companion object {
+        private const val UNKNOWN = "UNKNOWN"
 
-public class CouchbaseError {
-    private static final String UNKNOWN = "UNKNOWN";
-
-    private final List<ErrorEntry> errorEntries;
-
-    public CouchbaseError(List<ErrorEntry> errorEntries) {
-        this.errorEntries = errorEntries;
-    }
-
-    public static CouchbaseError create(@NotNull CouchbaseException exception) {
-        ErrorContext context = exception.context();
-        if (context == null) {
-            return unknown(exception);
-        }
-        Map<String, Object> exported = new HashMap<>();
-        context.injectExportableParams(exported);
-        Object errors = exported.get("errors");
-        if (!(errors instanceof List<?>)) {
-            return unknown(exception);
-        }
-        List<ErrorEntry> entries = new ArrayList<>();
-        for (Object errorObject : (List<?>) errors) {
-            if (!(errorObject instanceof Map<?, ?>)) {
-                return unknown(exception);
+        fun create(exception: CouchbaseException): CouchbaseError {
+            val context = exception.context()
+            if (context == null) {
+                return unknown(exception)
             }
-            Map<?, ?> errorMap = (Map<?, ?>) errorObject;
-            Object errorCode = errorMap.get("code");
-            if (errorCode == null) {
-                continue;
+
+            val exported = mutableMapOf<String, Any>()
+            context.injectExportableParams(exported)
+
+            val errors = exported["errors"]
+            if (errors !is List<*>) {
+                return unknown(exception)
             }
-            entries.add(new ErrorEntry(errorCode.toString(), String.valueOf(errorMap.get("message"))));
-        }
-        return new CouchbaseError(entries);
-    }
 
-    private static CouchbaseError unknown(@NotNull CouchbaseException exception) {
-        return new CouchbaseError(Collections.singletonList(new ErrorEntry(UNKNOWN, exception.toString())));
-    }
+            val entries = errors.mapNotNull { errorObject ->
+                if (errorObject is Map<*, *>) {
+                    val errorCode = errorObject["code"]?.toString()
+                    val message = errorObject["message"]?.toString()
+                    if (errorCode != null && message != null) {
+                        ErrorEntry(errorCode, message)
+                    } else {
+                        null
+                    }
+                } else {
+                    null
+                }
+            }
 
-    public List<ErrorEntry> getErrorEntries() {
-        return errorEntries;
-    }
-
-    public ErrorEntry getFirstError() {
-        return errorEntries.stream().findFirst().orElse(null);
-    }
-
-    public static class ErrorEntry {
-        private final String errorCode;
-        private final String message;
-
-        private ErrorEntry(String errorCode, String message) {
-            this.errorCode = errorCode;
-            this.message = message;
+            return CouchbaseError(entries)
         }
 
-        public String getMessage() {
-            return message;
-        }
-
-        public String getErrorCode() {
-            return errorCode;
+        private fun unknown(exception: CouchbaseException): CouchbaseError {
+            return CouchbaseError(listOf(ErrorEntry(UNKNOWN, exception.toString())))
         }
     }
 }
+
+data class ErrorEntry(val errorCode: String, val message: String)

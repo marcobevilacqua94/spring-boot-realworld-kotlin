@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.couchbase.core.query.WithConsistency;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,218 +31,195 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
-public class ArticleServiceImpl implements ArticleService {
+class ArticleServiceImpl(
+        @Autowired private val articleRepository: ArticleRepository,
+        @Autowired private val favoriteRepository: FavoriteRepository,
+        @Autowired private val profileService: ProfileService,
+        @Autowired private val followRepository: FollowRepository,
+        @Autowired private val commentRepository: CommentRepository,
+        @Autowired private val tagRepository: TagRepository
+) : ArticleService {
 
-    Logger logger = LoggerFactory.getLogger(ArticleServiceImpl.class);
-
-    @Autowired
-    private ArticleRepository articleRepository;
-    @Autowired
-    private FavoriteRepository favoriteRepository;
-    @Autowired
-    private ProfileService profileService;
-
-    @Autowired
-    private FollowRepository followRepository;
-
-    @Autowired
-    private CommentRepository commentRepository;
-
-    @Autowired
-    private TagRepository tagRepository;
-
+    private val logger: Logger = LoggerFactory.getLogger(ArticleServiceImpl::class.java)
     @Transactional
-    @Override
-    public ArticleDto createArticle(ArticleDto article, AuthUserDetails authUserDetails) {
-        String slug = String.join("-", article.getTitle().split(" "));
-        UserDocument author = UserDocument.builder()
-                .id(authUserDetails.getId())
-                .build();
+    override fun createArticle(article: ArticleDto, authUserDetails: AuthUserDetails): ArticleDto {
+        val slug = article.title!!.split(" ").joinToString("-")
+        val author = UserDocument.builder().id(authUserDetails.id).build()
 
-        ArticleDocument articleDocument = ArticleDocument.builder()
-                .slug(slug)
-                .title(article.getTitle())
-                .description(article.getDescription())
-                .body(article.getBody())
-                .author(author)
-                .build();
-        articleDocument.setCreatedAt(new Date());
-        articleDocument.setUpdatedAt(new Date());
-        if (article.getTagList() != null) {
-            articleDocument.setTagList(article.getTagList().stream().sorted().collect(Collectors.toList()));
-            for (String tag : article.getTagList()) {
-                tagRepository.save(ArticleTagRelationDocument.builder()
-                        .article(articleDocument)
-                        .tag(tag)
-                        .build());
-            }
-        }
-        articleDocument = articleRepository.save(articleDocument);
+        val articleDocument = ArticleDocument(
+                slug = slug,
+                title = article.title,
+                description = article.description,
+                body = article.body,
+                author = author,
+                tagList = article.tagList?.sorted()
+        )
 
-        return convertEntityToDto(articleDocument, false, 0L, authUserDetails);
-
-
-    }
-
-    @Override
-    public ArticleDto getArticleFavorite(String slug, AuthUserDetails authUserDetails) {
-        ArticleDocument result = articleRepository.findBySlug(slug);
-        if (result == null) throw new AppException(Error.ARTICLE_NOT_FOUND);
-        return convertEntityToDto(result, false, 0L, authUserDetails);
-    }
-
-    @Override
-    public ArticleDto getArticle(String slug, AuthUserDetails authUserDetails) {
-        ArticleDocument result = articleRepository.findBySlug(slug);
-        if (result == null) throw new AppException(Error.ARTICLE_NOT_FOUND);
-        List<FavoriteDocument> favoriteEntities = favoriteRepository.findAllFavorites();
-        Boolean favorited = favoriteRepository.findByArticleIdAndAuthorEmail(result.getId(), authUserDetails.getEmail()).isPresent();
-        int favoriteCount = (int) favoriteEntities.stream().count();
-        return convertEntityToDto(result, favorited, (long) favoriteCount, authUserDetails);
-    }
-
-
-    private ArticleDto convertEntityToDto(ArticleDocument entity, Boolean favorited, Long favoritesCount, AuthUserDetails authUserDetails) {
-        ArticleDto.ArticleDtoBuilder builder = ArticleDto.builder()
-                .id(entity.getId())
-                .slug(entity.getSlug())
-                .title(entity.getTitle())
-                .description(entity.getDescription())
-                .body(entity.getBody())
-                .createdAt(entity.getCreatedAt())
-                .updatedAt(entity.getUpdatedAt())
-                .favorited(favorited)
-                .favoritesCount(favoritesCount);
-
-        ProfileDto author = profileService.getProfileByUserIds(entity.getAuthor().getId());
-        if (author != null) builder.author(author);
-        List<String> taglist = entity.getTagList();
-        if (taglist != null) {
-            builder.tagList(taglist);
-        }
-        return builder.build();
-    }
-
-    @Transactional
-    @Override
-    public ArticleDto updateArticle(String slug, ArticleDto.Update article, AuthUserDetails authUserDetails) {
-        ArticleDocument found = articleRepository.findBySlug(slug);
-        if (found == null) throw new AppException(Error.ARTICLE_NOT_FOUND);
-        if (article.getTitle() != null) {
-            String newSlug = String.join("-", article.getTitle().split(" "));
-            found.setTitle(article.getTitle());
-            found.setSlug(newSlug);
+        article.tagList?.forEach { tag ->
+            tagRepository.save(ArticleTagRelationDocument.builder()
+                    .article(articleDocument)
+                    .tag(tag)
+                    .build())
         }
 
-        if (article.getDescription() != null) {
-            found.setDescription(article.getDescription());
-        }
+        val savedArticle = articleRepository.save(articleDocument)
 
-        if (article.getBody() != null) {
-            found.setBody(article.getBody());
-        }
-        found.setUpdatedAt(new Date());
-        articleRepository.save(found);
-
-        return getArticle(slug, authUserDetails);
-    }
-
-    @Transactional
-    @Override
-    public void deleteArticle(String slug, AuthUserDetails authUserDetails) {
-        ArticleDocument found = articleRepository.findBySlug(slug);
-        if (found == null) throw new AppException(Error.ARTICLE_NOT_FOUND);
-        logger.info("This is Slug" + found.getId());
-        articleRepository.delete(found);
-    }
-
-    @Transactional
-    @Override
-    public ArticleDto favoriteArticle(String slug, AuthUserDetails authUserDetails) {
-        ArticleDocument found = articleRepository.findBySlug(slug);
-        if (found == null) throw new AppException(Error.ARTICLE_NOT_FOUND);
-
-        favoriteRepository.findByArticleIdAndAuthorEmail(found.getId(), authUserDetails.getEmail())
-                .ifPresent(favoriteEntity -> {
-                    throw new AppException(Error.ALREADY_FAVORITED_ARTICLE);
-                });
-
-        FavoriteDocument favorite = FavoriteDocument.builder()
-                .article(found)
-                .author(UserDocument.builder()
-                        .id(String.valueOf(authUserDetails.getId()))
-                        .bio(authUserDetails.getBio())
-                        .email(authUserDetails.getEmail())
-                        .build())
-                .build();
-        favoriteRepository.save(favorite);
-
-        return getArticle(slug, authUserDetails);
+        return convertEntityToDto(savedArticle, false, 0L, authUserDetails)
     }
 
 
-    private List<ArticleDto> convertToArticleList(List<ArticleDocument> articleEntities, AuthUserDetails authUserDetails) {
-        return articleEntities.stream().map(entity -> {
-            List<FavoriteDocument> favorites = entity.getFavoriteList();
-            Boolean favorited = favorites.stream().anyMatch(favoriteEntity -> favoriteEntity.getAuthor().getId().equals(authUserDetails.getId()));
-            int favoriteCount = favorites.size();
-            return convertEntityToDto(entity, favorited, (long) favoriteCount, authUserDetails);
-        }).collect(Collectors.toList());
+    override fun getArticleFavorite(slug: String, authUserDetails: AuthUserDetails): ArticleDto {
+        val result = articleRepository.findBySlug(slug) ?: throw AppException(Error.ARTICLE_NOT_FOUND)
+        return convertEntityToDto(result, false, 0L, authUserDetails)
+    }
+
+    override fun getArticle(slug: String, authUserDetails: AuthUserDetails): ArticleDto {
+        val result = articleRepository.findBySlug(slug) ?: throw AppException(Error.ARTICLE_NOT_FOUND)
+        val favoriteEntities = favoriteRepository.findAllFavorites()
+        val favorited = favoriteRepository.findByArticleIdAndAuthorEmail(result.id, authUserDetails.email).isPresent
+        val favoriteCount = favoriteEntities.size.toLong()
+        return convertEntityToDto(result, favorited, favoriteCount, authUserDetails)
     }
 
 
-    @Override
-    public List<ArticleDto> feedArticles(AuthUserDetails authUserDetails, FeedParams feedParams) {
-        List<String> feedAuthorIds = followRepository.findByFollowerId(authUserDetails.getId().toString()).stream().map(FollowDocument::getFollowee).map(UserDocument::getId).collect(Collectors.toList());
-        return articleRepository.findByAuthorId(feedAuthorIds, PageRequest.of(feedParams.getOffset(), feedParams.getLimit())).stream().map(entity -> {
 
-            List<FavoriteDocument> favoriteEntities = favoriteRepository.findAllFavorites();
-            Boolean favoriteds = favoriteRepository.findByAuthorEmail(authUserDetails.getEmail()).isPresent();
-            int favoriteCounts = (int) favoriteEntities.stream().count();
-
-            return convertEntityToDto(entity, true, (long) favoriteCounts, authUserDetails);
-        }).collect(Collectors.toList());
-    }
-
-    @Override
-    public List<ArticleDto> getAllArticles(AuthUserDetails authUserDetails) {
-
-        List<ArticleDocument> result = articleRepository.findByAuthorId(authUserDetails.getId());
-        List<ArticleDocument> articleEntities = articleRepository.findAllArticles();
-        List<FavoriteDocument> favoriteEntities = favoriteRepository.findAllFavorites();
-        Boolean favorited = favoriteRepository.findByAuthorEmail(authUserDetails.getEmail()).isPresent();
-        int favoriteCount = (int) favoriteEntities.stream().count();
-
-        return result.stream().map(articleEntity -> convertEntityToDto(articleEntity, favorited, (long) favoriteCount, authUserDetails)).collect(Collectors.toList());
-    }
-
-    @Override
-    public List<ArticleDto> getAllArticlesYouFollow() {
-
-        List<ArticleDocument> articleEntities = articleRepository.findAllArticlesYouFollow();
-        List<FavoriteDocument> favoriteEntities = favoriteRepository.findAllFavorites();
-        int favoriteCount = (int) favoriteEntities.stream().count();
-
-        return articleEntities.stream().map(articleEntity -> convertEntityToDtos(articleEntity, true, (long) favoriteCount)).collect(Collectors.toList());
-    }
-
-    private ArticleDto convertEntityToDtos(ArticleDocument entity, Boolean favorited, Long favoritesCount) {
-        ProfileDto author = profileService.getProfileByUserIds(entity.getAuthor().getId());
-        return ArticleDto.builder()
-                .id(entity.getId())
-                .slug(entity.getSlug())
-                .title(entity.getTitle())
-                .description(entity.getDescription())
-                .body(entity.getBody())
-                .author(author)
-                .createdAt(entity.getCreatedAt())
-                .updatedAt(entity.getUpdatedAt())
+    private fun convertEntityToDto(entity: ArticleDocument, favorited: Boolean, favoritesCount: Long, authUserDetails: AuthUserDetails): ArticleDto {
+        val builder = ArticleDto.builder()
+                .id(entity.id)
+                .slug(entity.slug)
+                .title(entity.title)
+                .description(entity.description)
+                .body(entity.body)
+                .createdAt(entity.createdAt)
+                .updatedAt(entity.updatedAt)
                 .favorited(favorited)
                 .favoritesCount(favoritesCount)
-                .tagList(entity.getTagList())
-                .build();
+
+        val author = profileService.getProfileByUserIds(entity.author?.id)
+        author?.let { builder.author(it) }
+
+        entity.tagList?.let { builder.tagList(it) }
+
+        return builder.build()
     }
+
+    override fun updateArticle(slug: String, article: ArticleDto.Update, authUserDetails: AuthUserDetails): ArticleDto {
+        val found = articleRepository.findBySlug(slug) ?: throw AppException(Error.ARTICLE_NOT_FOUND)
+        if (article.title != null) {
+            val newSlug = article.title.split(" ").joinToString("-")
+            found.title = article.title
+            found.slug = newSlug
+        }
+
+        if (article.description != null) {
+            found.description = article.description
+        }
+
+        if (article.body != null) {
+            found.body = article.body
+        }
+
+        found.updatedAt = Date()
+        articleRepository.save(found)
+
+        return getArticle(slug, authUserDetails)
+    }
+
+
+    @Transactional
+    override fun deleteArticle(slug: String, authUserDetails: AuthUserDetails) {
+        val found = articleRepository.findBySlug(slug) ?: throw AppException(Error.ARTICLE_NOT_FOUND)
+        logger.info("This is Slug ${found.id}")
+        articleRepository.delete(found)
+    }
+
+    @Transactional
+    override fun favoriteArticle(slug: String, authUserDetails: AuthUserDetails): ArticleDto {
+        val found = articleRepository.findBySlug(slug) ?: throw AppException(Error.ARTICLE_NOT_FOUND)
+
+        if (favoriteRepository.findByArticleIdAndAuthorEmail(found.id, authUserDetails.email).isPresent) {
+            throw AppException(Error.ALREADY_FAVORITED_ARTICLE)
+        }
+
+        val favorite = FavoriteDocument.builder()
+                .article(found)
+                .author(UserDocument.builder()
+                        .id(authUserDetails.id.toString())
+                        .bio(authUserDetails.bio)
+                        .email(authUserDetails.email)
+                        .build())
+                .build()
+
+        favoriteRepository.save(favorite)
+
+        return getArticle(slug, authUserDetails)
+    }
+
+
+    private fun convertToArticleList(articleEntities: List<ArticleDocument>, authUserDetails: AuthUserDetails): List<ArticleDto> {
+        return articleEntities.map { entity ->
+            val favorites = entity.favoriteList
+            val favorited = favorites.any { favoriteEntity -> favoriteEntity.author.id == authUserDetails.id.toString() }
+            val favoriteCount = favorites.size.toLong()
+            convertEntityToDto(entity, favorited, favoriteCount, authUserDetails)
+        }
+    }
+
+
+
+    override fun feedArticles(authUserDetails: AuthUserDetails, feedParams: FeedParams): List<ArticleDto> {
+        val feedAuthorIds = followRepository.findByFollowerId(authUserDetails.id.toString()).map { it.followee.id }
+        return articleRepository.findByAuthorId(feedAuthorIds, PageRequest.of(feedParams.offset, feedParams.limit))
+                .map { entity ->
+                    val favoriteEntities = favoriteRepository.findAllFavorites()
+                    val favorited = favoriteRepository.findByAuthorEmail(authUserDetails.email).isPresent
+                    val favoriteCount = favoriteEntities.size.toLong()
+                    convertEntityToDto(entity, true, favoriteCount, authUserDetails)
+                }
+    }
+
+
+
+    override fun getAllArticles(authUserDetails: AuthUserDetails): List<ArticleDto> {
+        val result = articleRepository.findByAuthorId(authUserDetails.id)
+        val articleEntities = articleRepository.findAllArticles()
+        val favoriteEntities = favoriteRepository.findAllFavorites()
+        val favorited = favoriteRepository.findByAuthorEmail(authUserDetails.email).isPresent
+        val favoriteCount = favoriteEntities.size.toLong()
+
+        return result.map { articleEntity ->
+            convertEntityToDto(articleEntity, favorited, favoriteCount, authUserDetails)
+        }
+    }
+
+
+    override fun getAllArticlesYouFollow(): List<ArticleDto> {
+        val articleEntities = articleRepository.findAllArticlesYouFollow()
+        val favoriteEntities = favoriteRepository.findAllFavorites()
+        val favoriteCount = favoriteEntities.size.toLong()
+
+        return articleEntities.map { articleEntity ->
+            convertEntityToDtos(articleEntity, true, favoriteCount)
+        }
+    }
+
+    private fun convertEntityToDtos(entity: ArticleDocument, favorited: Boolean, favoritesCount: Long): ArticleDto {
+        val author = profileService.getProfileByUserIds(entity.author.id)
+        return ArticleDto(
+                id = entity.id,
+                slug = entity.slug,
+                title = entity.title,
+                description = entity.description,
+                body = entity.body,
+                author = author,
+                createdAt = entity.createdAt,
+                updatedAt = entity.updatedAt,
+                favorited = favorited,
+                favoritesCount = favoritesCount,
+                tagList = entity.tagList
+        )
+    }
+
 
 
 }

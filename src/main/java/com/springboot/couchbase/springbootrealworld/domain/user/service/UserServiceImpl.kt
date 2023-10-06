@@ -1,111 +1,101 @@
-package com.springboot.couchbase.springbootrealworld.domain.user.service;
+package com.springboot.couchbase.springbootrealworld.domain.user.service
 
-import com.springboot.couchbase.springbootrealworld.domain.user.dto.UserDto;
-import com.springboot.couchbase.springbootrealworld.domain.user.entity.UserDocument;
-import com.springboot.couchbase.springbootrealworld.domain.user.repository.UserRepository;
-import com.springboot.couchbase.springbootrealworld.exception.AppException;
-import com.springboot.couchbase.springbootrealworld.exception.Error;
-import com.springboot.couchbase.springbootrealworld.security.AuthUserDetails;
-import com.springboot.couchbase.springbootrealworld.security.JwtUtils;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import com.springboot.couchbase.springbootrealworld.domain.user.dto.UserDto
+import com.springboot.couchbase.springbootrealworld.domain.user.entity.UserDocument
+import com.springboot.couchbase.springbootrealworld.domain.user.repository.UserRepository
+import com.springboot.couchbase.springbootrealworld.exception.AppException
+import com.springboot.couchbase.springbootrealworld.exception.Error
+import com.springboot.couchbase.springbootrealworld.security.AuthUserDetails
+import com.springboot.couchbase.springbootrealworld.security.JwtUtils
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
 @RequiredArgsConstructor
-@SpringBootApplication(exclude = {SecurityAutoConfiguration.class})
-public class UserServiceImpl implements UserService {
-    @Autowired
-    private final UserRepository userRepository;
+@SpringBootApplication(exclude = [SecurityAutoConfiguration::class])
+class UserServiceImpl @Autowired constructor(
+        private val userRepository: UserRepository,
+        private val passwordEncoder: PasswordEncoder,
+        private val jwtUtils: JwtUtils
+) : UserService {
 
-    @Autowired
-    private final PasswordEncoder passwordEncoder;
-    @Autowired
-    private JwtUtils jwtUtils;
+    override fun registration(registration: UserDto.Registration): UserDto {
+        userRepository.findByUsernameOrEmail(registration.username, registration.email)
+                .findAny()
+                .ifPresent {
+                    throw AppException(Error.DUPLICATED_USER)
+                }
 
-
-    @Override
-    public UserDto registration(final UserDto.Registration registration) {
-        userRepository.findByUsernameOrEmail(registration.getUsername(), registration.getEmail()).stream().findAny().ifPresent(entity -> {
-            throw new AppException(Error.DUPLICATED_USER);
-        });
-        UserDocument userEntity = UserDocument.builder()
-                .username(registration.getUsername())
-                .email(registration.getEmail())
-                .password(passwordEncoder.encode(registration.getPassword()))
+        val userEntity = UserDocument.builder()
+                .username(registration.username)
+                .email(registration.email)
+                .password(passwordEncoder.encode(registration.password))
                 .bio("")
-                .build();
-        userRepository.save(userEntity);
-        return convertEntityToDto(userEntity);
-    }
+                .build()
 
-
-    @Transactional(readOnly = true)
-    @Override
-    public UserDto login(UserDto.Login login) {
-        UserDocument userDocument = userRepository.findByEmail(login.getEmail()).filter(user -> passwordEncoder.matches(login.getPassword(), user.getPassword())).orElseThrow(() -> new AppException(Error.LOGIN_INFO_INVALID));
-        System.out.println("Login : " + login.getEmail());
-        return convertEntityToDto(userDocument);
+        userRepository.save(userEntity)
+        return convertEntityToDto(userEntity)
     }
 
     @Transactional(readOnly = true)
-    @Override
-    public UserDto currentUser(AuthUserDetails authUserDetails) {
-        UserDocument userEntity = userRepository.findByEmail(authUserDetails.getEmail()).orElseThrow(() -> new AppException(Error.USER_NOT_FOUND));
-        return convertEntityToDto(userEntity);
+    override fun login(login: UserDto.Login): UserDto {
+        val userDocument = userRepository.findByEmail(login.email)
+                .filter { user -> passwordEncoder.matches(login.password, user.password) }
+                .orElseThrow { AppException(Error.LOGIN_INFO_INVALID) }
+
+        println("Login : " + login.email)
+        return convertEntityToDto(userDocument)
     }
 
-    @Override
-    public UserDto update(UserDto.Update update, AuthUserDetails authUserDetails) {
-        UserDocument userDocument = userRepository.findByEmail(authUserDetails.getEmail()).orElseThrow(() -> new AppException(Error.USER_NOT_FOUND));
-
-        if (update.getUsername() != null) {
-            userRepository.findByUsername(update.getUsername())
-                    .filter(found -> !found.getId().equals(userDocument.getId()))
-                    .ifPresent(found -> {
-                        throw new AppException(Error.DUPLICATED_USER);
-                    });
-            userDocument.setUsername(update.getUsername());
-        }
-
-        if (update.getEmail() != null) {
-            userRepository.findByEmail(update.getEmail())
-                    .filter(found -> !found.getId().equals(userDocument.getId()))
-                    .ifPresent(found -> {
-                        throw new AppException(Error.DUPLICATED_USER);
-                    });
-            userDocument.setEmail(update.getEmail());
-        }
-
-
-        if (update.getBio() != null) {
-            userDocument.setBio(update.getBio());
-        }
-
-        if (update.getImage() != null) {
-            userDocument.setImage(update.getImage());
-        }
-
-        userRepository.save(userDocument);
-        return convertEntityToDto(userDocument);
+    @Transactional(readOnly = true)
+    override fun currentUser(authUserDetails: AuthUserDetails): UserDto {
+        val userEntity = userRepository.findByEmail(authUserDetails.email)
+                .orElseThrow { AppException(Error.USER_NOT_FOUND) }
+        return convertEntityToDto(userEntity)
     }
 
+    override fun update(update: UserDto.Update, authUserDetails: AuthUserDetails): UserDto {
+        val userDocument = userRepository.findByEmail(authUserDetails.email)
+                .orElseThrow { AppException(Error.USER_NOT_FOUND) }
 
-    private UserDto convertEntityToDto(UserDocument userEntity) {
+        update.username?.let { newUsername ->
+            userRepository.findByUsername(newUsername)
+                    .filter { found -> !found.id.equals(userDocument.id) }
+                    .ifPresent {
+                        throw AppException(Error.DUPLICATED_USER)
+                    }
+            userDocument.username = newUsername
+        }
+
+        update.email?.let { newEmail ->
+            userRepository.findByEmail(newEmail)
+                    .filter { found -> !found.id.equals(userDocument.id) }
+                    .ifPresent {
+                        throw AppException(Error.DUPLICATED_USER)
+                    }
+            userDocument.email = newEmail
+        }
+
+        update.bio?.let { userDocument.bio = it }
+        update.image?.let { userDocument.image = it }
+
+        userRepository.save(userDocument)
+        return convertEntityToDto(userDocument)
+    }
+
+    private fun convertEntityToDto(userEntity: UserDocument): UserDto {
         return UserDto.builder()
-                .id(userEntity.getId())
-                .password(userEntity.getPassword())
-                .username(userEntity.getUsername())
-                .bio(userEntity.getBio())
-                .email(userEntity.getEmail())
-                .image(userEntity.getImage())
-                .token(jwtUtils.encode(userEntity.getEmail()))
-                .build();
+                .id(userEntity.id)
+                .password(userEntity.password)
+                .username(userEntity.username)
+                .bio(userEntity.bio)
+                .email(userEntity.email)
+                .image(userEntity.image)
+                .token(jwtUtils.encode(userEntity.email))
+                .build()
     }
-
-
 }

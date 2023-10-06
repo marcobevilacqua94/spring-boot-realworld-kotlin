@@ -1,34 +1,38 @@
-package com.springboot.couchbase.springbootrealworld.security;
+package com.springboot.couchbase.springbootrealworld.security
 
-import jakarta.servlet.*;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
-
-import java.io.IOException;
-import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpHeaders
+import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.stereotype.Component
+import javax.servlet.FilterChain
+import javax.servlet.GenericFilter
+import javax.servlet.ServletRequest
+import javax.servlet.ServletResponse
+import javax.servlet.http.HttpServletRequest
 
 @Component
-@RequiredArgsConstructor
-public class JWTAuthFilter extends GenericFilter {
-    public static final String TOKEN_PREFIX = "Token ";
-    @Autowired
-    private final JwtUtils jwtUtils;
-    @Autowired
-    private final AuthenticationProvider authenticationProvider;
+class JWTAuthFilter @Autowired constructor(
+        private val jwtUtils: JwtUtils,
+        private val authenticationProvider: AuthenticationProvider
+) : GenericFilter() {
 
-    @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        Optional.ofNullable(((HttpServletRequest) request).getHeader(HttpHeaders.AUTHORIZATION))
-                .filter(authHeader -> authHeader.startsWith(TOKEN_PREFIX))
-                .map(authHeader -> authHeader.substring(TOKEN_PREFIX.length()))
-                .filter(jwtUtils::validateToken)
-                .map(jwtUtils::getSub)
-                .map(authenticationProvider::getAuthentication)
-                .ifPresent(SecurityContextHolder.getContext()::setAuthentication);
-        chain.doFilter(request, response);
+    companion object {
+        const val TOKEN_PREFIX = "Token "
+    }
+
+    override fun doFilter(request: ServletRequest?, response: ServletResponse?, chain: FilterChain?) {
+        val httpRequest = request as HttpServletRequest
+        httpRequest.getHeader(HttpHeaders.AUTHORIZATION)?.let { authHeader ->
+            if (authHeader.startsWith(TOKEN_PREFIX)) {
+                val token = authHeader.substring(TOKEN_PREFIX.length)
+                if (jwtUtils.validateToken(token)) {
+                    val sub = jwtUtils.getSub(token)
+                    authenticationProvider.getAuthentication(sub)?.let {
+                        SecurityContextHolder.getContext().authentication = it
+                    }
+                }
+            }
+        }
+        chain?.doFilter(request, response)
     }
 }

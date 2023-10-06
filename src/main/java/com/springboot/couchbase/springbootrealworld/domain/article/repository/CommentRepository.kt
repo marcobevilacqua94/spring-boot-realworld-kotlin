@@ -1,17 +1,14 @@
-package com.springboot.couchbase.springbootrealworld.domain.article.repository;
-
-
-import com.springboot.couchbase.springbootrealworld.domain.article.entity.CommentDocument;
-import org.springframework.data.couchbase.repository.Collection;
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.stereotype.Repository;
-
-import java.util.List;
-
+package com.springboot.couchbase.springbootrealworld.domain.article.repository
+import org.springframework.data.couchbase.repository.Collection
+import org.springframework.data.couchbase.repository.Query;
+import com.springboot.couchbase.springbootrealworld.domain.article.entity.CommentDocument
+import org.springframework.data.repository.CrudRepository
+import org.springframework.stereotype.Repository
 
 @Repository
 @Collection(CommentDocument.COMMENT_COLLECTION_NAME)
-public interface CommentRepository extends CrudRepository<CommentDocument, String> {
-    List<CommentDocument> findByArticleIdOrderByCreatedAtDesc(String articleId);
-}
+interface CommentRepository : CrudRepository<CommentDocument, String> {
 
+    @Query("#{#n1ql.selectEntity} WHERE article.id = $1 ORDER BY createdAt DESC")
+    fun findByArticleIdOrderByCreatedAtDesc(articleId: String): List<CommentDocument>
+}

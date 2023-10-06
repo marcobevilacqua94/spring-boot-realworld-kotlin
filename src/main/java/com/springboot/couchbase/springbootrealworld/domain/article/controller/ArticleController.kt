@@ -1,197 +1,175 @@
-package com.springboot.couchbase.springbootrealworld.domain.article.controller;
+package com.springboot.couchbase.springbootrealworld.domain.article.controller
 
-import com.springboot.couchbase.springbootrealworld.domain.article.dto.ArticleDto;
-import com.springboot.couchbase.springbootrealworld.domain.article.dto.CommentDto;
-import com.springboot.couchbase.springbootrealworld.domain.article.dto.FavoriteDto;
-import com.springboot.couchbase.springbootrealworld.domain.article.model.FeedParams;
-import com.springboot.couchbase.springbootrealworld.domain.article.service.ArticleService;
-import com.springboot.couchbase.springbootrealworld.domain.article.service.CommentService;
-import com.springboot.couchbase.springbootrealworld.domain.article.service.FavoriteService;
-import com.springboot.couchbase.springbootrealworld.exception.AppException;
-import com.springboot.couchbase.springbootrealworld.security.AuthUserDetails;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.couchbase.core.CouchbaseTemplate;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
-
-import javax.validation.Valid;
-import java.util.List;
-
+import com.springboot.couchbase.springbootrealworld.domain.article.dto.ArticleDto
+import com.springboot.couchbase.springbootrealworld.domain.article.dto.CommentDto
+import com.springboot.couchbase.springbootrealworld.domain.article.dto.FavoriteDto
+import com.springboot.couchbase.springbootrealworld.domain.article.model.FeedParams
+import com.springboot.couchbase.springbootrealworld.domain.article.service.ArticleService
+import com.springboot.couchbase.springbootrealworld.domain.article.service.CommentService
+import com.springboot.couchbase.springbootrealworld.domain.article.service.FavoriteService
+import com.springboot.couchbase.springbootrealworld.exception.AppException
+import com.springboot.couchbase.springbootrealworld.security.AuthUserDetails
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.couchbase.core.CouchbaseTemplate
+import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.*
+import org.springframework.web.server.ResponseStatusException
+import javax.validation.Valid
 
 @RestController
 @RequestMapping("/articles")
-public class ArticleController {
+class ArticleController {
 
     @Autowired
-    private ArticleService articleService;
-    @Autowired
-    private CommentService commentService;
-    @Autowired
-    private FavoriteService favoriteService;
+    private lateinit var articleService: ArticleService
 
     @Autowired
-    private CouchbaseTemplate couchbaseTemplate;
+    private lateinit var commentService: CommentService
 
+    @Autowired
+    private lateinit var favoriteService: FavoriteService
 
-    //Adding an Article
+    @Autowired
+    private lateinit var couchbaseTemplate: CouchbaseTemplate
+
+    // Adding an Article
     @PostMapping
-    public ArticleDto.SingleArticle<ArticleDto> createArticle(@RequestBody ArticleDto.SingleArticle<ArticleDto> article, @AuthenticationPrincipal AuthUserDetails authUserDetails) {
-        System.out.println(article);
+    fun createArticle(@RequestBody article: ArticleDto.SingleArticle<ArticleDto>, @AuthenticationPrincipal authUserDetails: AuthUserDetails): ArticleDto.SingleArticle<ArticleDto> {
         try {
-            return new ArticleDto.SingleArticle<>(articleService.createArticle(article.getArticle(), authUserDetails));
-        } catch (AppException aex) {
-            throw new ResponseStatusException(
-                    aex.getError().getStatus().value(), aex.getError().getMessage(), aex);
+            return ArticleDto.SingleArticle(articleService.createArticle(article.article, authUserDetails))
+        } catch (aex: AppException) {
+            throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }
     }
 
-    //Get an Article using slug
+    // Get an Article using slug
     @GetMapping("/{slug}")
-    public ArticleDto.SingleArticle<ArticleDto> getArticle(@PathVariable String slug, @AuthenticationPrincipal AuthUserDetails authUserDetails) {
+    fun getArticle(@PathVariable slug: String, @AuthenticationPrincipal authUserDetails: AuthUserDetails): ArticleDto.SingleArticle<ArticleDto> {
         try {
-            return new ArticleDto.SingleArticle<>(articleService.getArticle(slug, authUserDetails));
-        } catch (AppException aex) {
-            throw new ResponseStatusException(
-                    aex.getError().getStatus().value(), aex.getError().getMessage(), aex);
+            return ArticleDto.SingleArticle(articleService.getArticle(slug, authUserDetails))
+        } catch (aex: AppException) {
+            throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }
     }
 
-    //Update an Article using slug
+    // Update an Article using slug
     @PutMapping("/{slug}")
-    public ArticleDto.SingleArticle<ArticleDto> createArticle(@PathVariable String slug, @RequestBody ArticleDto.SingleArticle<ArticleDto.Update> article, @AuthenticationPrincipal AuthUserDetails authUserDetails) {
+    fun updateArticle(@PathVariable slug: String, @RequestBody article: ArticleDto.SingleArticle<ArticleDto.Update>, @AuthenticationPrincipal authUserDetails: AuthUserDetails): ArticleDto.SingleArticle<ArticleDto> {
         try {
-            return new ArticleDto.SingleArticle<>(articleService.updateArticle(slug, article.getArticle(), authUserDetails));
-        } catch (AppException aex) {
-            throw new ResponseStatusException(
-                    aex.getError().getStatus().value(), aex.getError().getMessage(), aex);
+            return ArticleDto.SingleArticle(articleService.updateArticle(slug, article.article, authUserDetails))
+        } catch (aex: AppException) {
+            throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }
     }
 
-    //Delete an Article using slug
+    // Delete an Article using slug
     @DeleteMapping("/{slug}")
-    public void deleteArticle(@PathVariable String slug, @AuthenticationPrincipal AuthUserDetails authUserDetails) {
+    fun deleteArticle(@PathVariable slug: String, @AuthenticationPrincipal authUserDetails: AuthUserDetails) {
         try {
-            articleService.deleteArticle(slug, authUserDetails);
-        } catch (AppException aex) {
-            throw new ResponseStatusException(
-                    aex.getError().getStatus().value(), aex.getError().getMessage(), aex);
+            articleService.deleteArticle(slug, authUserDetails)
+        } catch (aex: AppException) {
+            throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }
     }
 
-    //Post a comment with a slug as parameter
+    // Post a comment with a slug as parameter
     @PostMapping("/{slug}/comments")
-    public CommentDto.SingleComment addCommentsToAnArticle(@PathVariable String slug, @RequestBody CommentDto.SingleComment comment, @AuthenticationPrincipal AuthUserDetails authUserDetails) {
+    fun addCommentsToAnArticle(
+            @PathVariable slug: String,
+            @RequestBody comment: CommentDto.SingleComment,
+            @AuthenticationPrincipal authUserDetails: AuthUserDetails
+    ): CommentDto.SingleComment {
         try {
-            System.out.println(comment);
-            return CommentDto.SingleComment.builder()
-                    .comment(commentService.addCommentsToAnArticle(slug, comment.getComment(), authUserDetails))
-                    .build();
-        } catch (AppException aex) {
-            throw new ResponseStatusException(
-                    aex.getError().getStatus().value(), aex.getError().getMessage(), aex);
+            println(comment)
+            val addedComment = commentService.addCommentsToAnArticle(slug, comment.comment, authUserDetails)
+            return CommentDto.SingleComment(addedComment)
+        } catch (aex: AppException) {
+            throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }
     }
 
-    //Get all comments to an article with a slug as parameter
+    // Get all comments to an article with a slug as parameter
     @GetMapping("/{slug}/comments")
-    public CommentDto.MultipleComments getCommentsFromAnArticle(@PathVariable String slug, @AuthenticationPrincipal AuthUserDetails authUserDetails) {
+    fun getCommentsFromAnArticle(@PathVariable slug: String, @AuthenticationPrincipal authUserDetails: AuthUserDetails): CommentDto.MultipleComments {
         try {
             return CommentDto.MultipleComments.builder()
                     .comments(commentService.getCommentsBySlug(slug, authUserDetails))
-                    .build();
-        } catch (AppException aex) {
-            throw new ResponseStatusException(
-                    aex.getError().getStatus().value(), aex.getError().getMessage(), aex);
+                    .build()
+        } catch (aex: AppException) {
+            throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }
     }
 
-    //delete a comment to an article with a comment id as parameter
+    // Delete a comment to an article with a comment id as parameter
     @DeleteMapping("/comments/{commentId}")
-    public void deleteComment(@PathVariable("commentId") String commentId, @AuthenticationPrincipal AuthUserDetails authUserDetails) {
+    fun deleteComment(@PathVariable("commentId") commentId: String, @AuthenticationPrincipal authUserDetails: AuthUserDetails) {
         try {
-            commentService.delete(commentId, authUserDetails);
-        } catch (AppException aex) {
-            throw new ResponseStatusException(
-                    aex.getError().getStatus().value(), aex.getError().getMessage(), aex);
+            commentService.delete(commentId, authUserDetails)
+        } catch (aex: AppException) {
+            throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }
     }
 
-    //Post a favorite article with a slug as a parameter
+    // Post a favorite article with a slug as a parameter
     @PostMapping("/{slug}/favorite")
-    public ArticleDto.SingleArticle<ArticleDto> favoriteArticle(@PathVariable String slug, @AuthenticationPrincipal AuthUserDetails authUserDetails) {
+    fun favoriteArticle(@PathVariable slug: String, @AuthenticationPrincipal authUserDetails: AuthUserDetails): ArticleDto.SingleArticle<ArticleDto> {
         try {
-            return new ArticleDto.SingleArticle<>(articleService.favoriteArticle(slug, authUserDetails));
-        } catch (AppException aex) {
-            throw new ResponseStatusException(
-                    aex.getError().getStatus().value(), aex.getError().getMessage(), aex);
+            return ArticleDto.SingleArticle(articleService.favoriteArticle(slug, authUserDetails))
+        } catch (aex: AppException) {
+            throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }
     }
 
-    //Get a favorite article with a slug as a parameter
+    // Get a favorite article with a slug as a parameter
     @GetMapping("/{slug}/favorites")
-    public FavoriteDto.MultipleFavorites getFavoritesFromAnArticle(@PathVariable String slug, @AuthenticationPrincipal AuthUserDetails authUserDetails) {
+    fun getFavoritesFromAnArticle(@PathVariable slug: String, @AuthenticationPrincipal authUserDetails: AuthUserDetails): FavoriteDto.MultipleFavorites {
         try {
             return FavoriteDto.MultipleFavorites.builder()
                     .favorites(favoriteService.getFavoritesBySlug(slug, authUserDetails))
-                    .build();
-        } catch (AppException aex) {
-            throw new ResponseStatusException(
-                    aex.getError().getStatus().value(), aex.getError().getMessage(), aex);
+                    .build()
+        } catch (aex: AppException) {
+            throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }
     }
 
-    //Delete a favorite article with a slug as a parameter
+    // Delete a favorite article with a slug as a parameter
     @DeleteMapping("/{slug}/favorite")
-    public ArticleDto.SingleArticle deleteFavorite(@PathVariable("slug") String slug, @AuthenticationPrincipal AuthUserDetails authUserDetails) {
+    fun deleteFavorite(@PathVariable("slug") slug: String, @AuthenticationPrincipal authUserDetails: AuthUserDetails): ArticleDto.SingleArticle<ArticleDto> {
         try {
-            return new ArticleDto.SingleArticle(favoriteService.delete(slug, authUserDetails));
-        } catch (AppException aex) {
-            throw new ResponseStatusException(
-                    aex.getError().getStatus().value(), aex.getError().getMessage(), aex);
+            return ArticleDto.SingleArticle(favoriteService.delete(slug, authUserDetails))
+        } catch (aex: AppException) {
+            throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }
     }
 
-    //Get all article with pagination and user authentication
+    // Get all article with pagination and user authentication
     @GetMapping("/all")
-    public ArticleDto.MultipleArticle feedArticles(@ModelAttribute @Valid FeedParams feedParams, @AuthenticationPrincipal AuthUserDetails authUserDetails) {
+    fun feedArticles(@ModelAttribute @Valid feedParams: FeedParams, @AuthenticationPrincipal authUserDetails: AuthUserDetails): ArticleDto.MultipleArticle {
         try {
-            List<ArticleDto> articles = articleService.feedArticles(authUserDetails, feedParams);
-            return ArticleDto.MultipleArticle.builder().articles(articles).articlesCount(articles.size()).build();
-        } catch (AppException aex) {
-            throw new ResponseStatusException(
-                    aex.getError().getStatus().value(), aex.getError().getMessage(), aex);
+            val articles = articleService.feedArticles(authUserDetails, feedParams)
+            return ArticleDto.MultipleArticle(articles, articles.size)
+        } catch (aex: AppException) {
+            throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }
     }
 
-    //Get all article with user authentication
     @GetMapping("/feed")
-    public ArticleDto.MultipleArticle getArticles(@AuthenticationPrincipal AuthUserDetails authUserDetails) {
+    fun getArticles(@AuthenticationPrincipal authUserDetails: AuthUserDetails): ArticleDto.MultipleArticle {
         try {
-            List<ArticleDto> articles = articleService.getAllArticles(authUserDetails);
-            return ArticleDto.MultipleArticle.builder()
-                    .articles(articles)
-                    .articlesCount(articles.size())
-                    .build();
-        } catch (AppException aex) {
-            throw new ResponseStatusException(
-                    aex.getError().getStatus().value(), aex.getError().getMessage(), aex);
+            val articles = articleService.getAllArticles(authUserDetails)
+            return ArticleDto.MultipleArticle(articles, articles.size)
+        } catch (aex: AppException) {
+            throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }
     }
 
-    //Get all article without user authentication
     @GetMapping
-    public ArticleDto.MultipleArticle getArticlesYouFollow() {
+    fun getArticlesYouFollow(): ArticleDto.MultipleArticle {
         try {
-            List<ArticleDto> articles = articleService.getAllArticlesYouFollow();
-            return ArticleDto.MultipleArticle.builder()
-                    .articles(articles)
-                    .articlesCount(articles.size())
-                    .build();
-        } catch (AppException aex) {
-            throw new ResponseStatusException(
-                    aex.getError().getStatus().value(), aex.getError().getMessage(), aex);
+            val articles = articleService.getAllArticlesYouFollow()
+            return ArticleDto.MultipleArticle(articles, articles.size)
+        } catch (aex: AppException) {
+            throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }
     }
-
 }

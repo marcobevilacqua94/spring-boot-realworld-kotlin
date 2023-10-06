@@ -1,39 +1,26 @@
-package com.springboot.couchbase.springbootrealworld.domain.common.entiity;
+package com.springboot.couchbase.springbootrealworld.domain.common.entiity
 
+import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.Version
+import org.springframework.data.couchbase.core.mapping.Field
+import org.springframework.data.couchbase.core.mapping.id.GeneratedValue
+import org.springframework.data.couchbase.core.mapping.id.GenerationStrategy
+import org.springframework.data.couchbase.core.mapping.id.IdAttribute
+import java.util.Date
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.experimental.SuperBuilder;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.Version;
-import org.springframework.data.couchbase.core.mapping.Field;
-import org.springframework.data.couchbase.core.mapping.id.GeneratedValue;
-import org.springframework.data.couchbase.core.mapping.id.GenerationStrategy;
+open class BaseDocument(
+        @Id
+        @GeneratedValue(strategy = GenerationStrategy.UNIQUE)
+        @IdAttribute
+        var id: String? = null,
 
-import javax.persistence.MappedSuperclass;
-import java.util.Date;
+        @Field
+        var createdAt: Date = Date(),
 
-@Getter
-@Setter
-@MappedSuperclass
-@SuperBuilder
-@NoArgsConstructor
-@AllArgsConstructor
-public class BaseDocument {
-    @Id
-    @GeneratedValue(strategy = GenerationStrategy.UNIQUE)
-    protected String id;
+        @Field
+        var updatedAt: Date = Date(),
 
-    @Field
-    protected Date createdAt = new Date();
-
-
-    @Field
-    protected Date updatedAt = new Date();
-
-    @Field
-    @Version
-    private long version;
-}
+        @Field
+        @Version
+        private var version: Long = 0
+)

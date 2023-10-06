@@ -1,23 +1,5 @@
-package com.springboot.couchbase.springbootrealworld.domain.tag.dto;
+package com.springboot.couchbase.springbootrealworld.domain.tag.dto
 
-import lombok.*;
-
-import java.util.List;
-
-@Getter
-@Setter
-@Builder
-public class TagDto {
-
-    @Getter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class TagList {
-        List<String> tags;
-    }
-
-
+data class TagDto(val tags: List<String>? = null) {
+    data class TagList(val tags: List<String>? = null)
 }
-
-

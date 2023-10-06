@@ -1,27 +1,10 @@
-package com.springboot.couchbase.springbootrealworld.domain.profile.dto;
+package com.springboot.couchbase.springbootrealworld.domain.profile.dto
 
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
-@Getter
-@AllArgsConstructor
-@NoArgsConstructor
-@Builder
-public class ProfileDto {
-    private String username;
-    private String bio;
-    private String image;
-    private Boolean following;
-
-
-    @Getter
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @Builder
-    public static class Single {
-        private ProfileDto profile;
-    }
+data class ProfileDto(
+        val username: String,
+        val bio: String,
+        val image: String,
+        val following: Boolean
+) {
+    data class Single(val profile: ProfileDto)
 }

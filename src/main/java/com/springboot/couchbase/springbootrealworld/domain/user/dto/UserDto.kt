@@ -1,69 +1,41 @@
-package com.springboot.couchbase.springbootrealworld.domain.user.dto;
+package com.springboot.couchbase.springbootrealworld.domain.user.dto
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo
+import com.fasterxml.jackson.annotation.JsonTypeName
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonTypeName;
-import lombok.*;
-
-
-@Getter
-@Setter
-@Builder
 @JsonTypeName("user")
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.WRAPPER_OBJECT)
-public class UserDto {
+data class UserDto(
+        val id: String,
+        val email: String,
+        val token: String,
+        val username: String,
+        val password: String,
+        val bio: String,
+        val image: String
+)
 
-    protected String id;
-    private String email;
-    private String token;
-    private String username;
-    private String password;
-    private String bio;
-    private String image;
+@JsonTypeName("user")
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.WRAPPER_OBJECT)
+data class Registration(
+        val username: String,
+        val email: String,
+        val password: String
+)
 
+@JsonTypeName("user")
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.WRAPPER_OBJECT)
+data class Login(
+        val email: String,
+        val password: String
+)
 
-    @Getter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @JsonTypeName("user")
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.WRAPPER_OBJECT)
-    public static class Registration {
-
-        private String username;
-
-
-        private String email;
-
-
-        private String password;
-    }
-
-    @Getter
-    @AllArgsConstructor
-    @Builder
-    @JsonTypeName("user")
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.WRAPPER_OBJECT)
-    public static class Login {
-
-        private String email;
-
-        private String password;
-    }
-
-    @Getter
-    @AllArgsConstructor
-    @Builder
-    @JsonTypeName("user")
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.WRAPPER_OBJECT)
-    public static class Update {
-        private Long id;
-        private String email;
-        private String username;
-        private String bio;
-        private String image;
-
-    }
-
-}
-
+@JsonTypeName("user")
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.WRAPPER_OBJECT)
+data class Update(
+        val id: String,
+        val email: String,
+        val username: String,
+        val bio: String,
+        val image: String
+)

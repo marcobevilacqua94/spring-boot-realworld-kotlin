@@ -1,68 +1,50 @@
-package com.springboot.couchbase.springbootrealworld.domain.article.service;
+package com.springboot.couchbase.springbootrealworld.domain.article.service
 
-import com.springboot.couchbase.springbootrealworld.domain.article.dto.ArticleDto;
-import com.springboot.couchbase.springbootrealworld.domain.article.dto.FavoriteDto;
-import com.springboot.couchbase.springbootrealworld.domain.article.entity.ArticleDocument;
-import com.springboot.couchbase.springbootrealworld.domain.article.entity.FavoriteDocument;
-import com.springboot.couchbase.springbootrealworld.domain.article.repository.ArticleRepository;
-import com.springboot.couchbase.springbootrealworld.domain.article.repository.FavoriteRepository;
-import com.springboot.couchbase.springbootrealworld.domain.profile.dto.ProfileDto;
-import com.springboot.couchbase.springbootrealworld.domain.profile.service.ProfileService;
-import com.springboot.couchbase.springbootrealworld.domain.user.repository.UserRepository;
-import com.springboot.couchbase.springbootrealworld.exception.AppException;
-import com.springboot.couchbase.springbootrealworld.exception.Error;
-import com.springboot.couchbase.springbootrealworld.security.AuthUserDetails;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
+import com.springboot.couchbase.springbootrealworld.domain.article.dto.ArticleDto
+import com.springboot.couchbase.springbootrealworld.domain.article.dto.FavoriteDto
+import com.springboot.couchbase.springbootrealworld.domain.article.entity.ArticleDocument
+import com.springboot.couchbase.springbootrealworld.domain.article.entity.FavoriteDocument
+import com.springboot.couchbase.springbootrealworld.domain.article.repository.ArticleRepository
+import com.springboot.couchbase.springbootrealworld.domain.article.repository.FavoriteRepository
+import com.springboot.couchbase.springbootrealworld.domain.profile.dto.ProfileDto
+import com.springboot.couchbase.springbootrealworld.domain.profile.service.ProfileService
+import com.springboot.couchbase.springbootrealworld.domain.user.repository.UserRepository
+import com.springboot.couchbase.springbootrealworld.exception.AppException
+import com.springboot.couchbase.springbootrealworld.exception.Error
+import com.springboot.couchbase.springbootrealworld.security.AuthUserDetails
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
-@RequiredArgsConstructor
-public class FavoriteServiceImpl implements FavoriteService {
-    @Autowired
-    private ArticleRepository articleRepository;
+class FavoriteServiceImpl @Autowired constructor(
+        private val articleRepository: ArticleRepository,
+        private val articleService: ArticleService,
+        private val favoriteRepository: FavoriteRepository,
+        private val profileService: ProfileService,
+        private val userRepository: UserRepository
+) : FavoriteService {
 
-    @Autowired
-    private final ArticleService articleService;
-
-    @Autowired
-    private FavoriteRepository favoriteRepository;
-    @Autowired
-    private ProfileService profileService;
-
-    @Autowired
-    private final UserRepository userRepository;
-
-
-    @Override
-    public List<FavoriteDto> getFavoritesBySlug(String slug, AuthUserDetails authUserDetails) {
-        String articleId = articleRepository.findBySlug(slug).getId();
-        List<FavoriteDocument> favoriteEntities = favoriteRepository.findByArticleId(articleId);
-        return favoriteEntities.stream().map(favoriteEntity -> convertToDTO(authUserDetails, favoriteEntity)).collect(Collectors.toList());
+    override fun getFavoritesBySlug(slug: String, authUserDetails: AuthUserDetails): List<FavoriteDto> {
+        val articleId = articleRepository.findBySlug(slug)?.id ?: throw AppException(Error.ARTICLE_NOT_FOUND)
+        val favoriteEntities = favoriteRepository.findByArticleId(articleId)
+        return favoriteEntities.map { convertToDTO(authUserDetails, it) }
     }
 
     @Transactional
-    @Override
-    public ArticleDto delete(String slug, AuthUserDetails authUserDetails) {
-        ArticleDocument article = articleRepository.findBySlug(slug);
-        if (article == null) throw new AppException(Error.ARTICLE_NOT_FOUND);
-        String articleId = article.getId();
-        List<FavoriteDocument> favoriteEntities = favoriteRepository.findByArticleId(articleId);
-        favoriteRepository.deleteAll(favoriteEntities);
-        return articleService.getArticle(slug, authUserDetails);
+    override fun delete(slug: String, authUserDetails: AuthUserDetails): ArticleDto {
+        val article = articleRepository.findBySlug(slug) ?: throw AppException(Error.ARTICLE_NOT_FOUND)
+        val articleId = article.id
+        val favoriteEntities = favoriteRepository.findByArticleId(articleId)
+        favoriteRepository.deleteAll(favoriteEntities)
+        return articleService.getArticle(slug, authUserDetails)
     }
 
-    private FavoriteDto convertToDTO(AuthUserDetails authUserDetails, FavoriteDocument favoriteDocument) {
-        ProfileDto author = profileService.getProfileByUserId(favoriteDocument.getAuthor().getId(), authUserDetails);
+    private fun convertToDTO(authUserDetails: AuthUserDetails, favoriteDocument: FavoriteDocument): FavoriteDto {
+        val author = profileService.getProfileByUserId(favoriteDocument.author.id, authUserDetails)
         return FavoriteDto.builder()
-                .id(favoriteDocument.getId())
+                .id(favoriteDocument.id)
                 .author(author)
-                .build();
+                .build()
     }
-
-
 }

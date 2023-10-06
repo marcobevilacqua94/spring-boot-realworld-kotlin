@@ -1,98 +1,80 @@
-package com.springboot.couchbase.springbootrealworld.domain.profile.service;
+package com.springboot.couchbase.springbootrealworld.domain.profile.service
 
-
-import com.springboot.couchbase.springbootrealworld.domain.profile.dto.ProfileDto;
-import com.springboot.couchbase.springbootrealworld.domain.profile.entity.FollowDocument;
-import com.springboot.couchbase.springbootrealworld.domain.profile.repository.FollowRepository;
-import com.springboot.couchbase.springbootrealworld.domain.user.entity.UserDocument;
-import com.springboot.couchbase.springbootrealworld.domain.user.repository.UserRepository;
-import com.springboot.couchbase.springbootrealworld.exception.AppException;
-import com.springboot.couchbase.springbootrealworld.exception.Error;
-import com.springboot.couchbase.springbootrealworld.security.AuthUserDetails;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import com.springboot.couchbase.springbootrealworld.domain.profile.dto.ProfileDto
+import com.springboot.couchbase.springbootrealworld.domain.profile.entity.FollowDocument
+import com.springboot.couchbase.springbootrealworld.domain.profile.repository.FollowRepository
+import com.springboot.couchbase.springbootrealworld.domain.user.entity.UserDocument
+import com.springboot.couchbase.springbootrealworld.domain.user.repository.UserRepository
+import com.springboot.couchbase.springbootrealworld.exception.AppException
+import com.springboot.couchbase.springbootrealworld.exception.Error
+import com.springboot.couchbase.springbootrealworld.security.AuthUserDetails
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
-@RequiredArgsConstructor
-public class ProfileServiceImpl implements ProfileService {
-    @Autowired
-    private final UserRepository userRepository;
-    @Autowired
-    private final FollowRepository followRepository;
+class ProfileServiceImpl @Autowired constructor(
+        private val userRepository: UserRepository,
+        private val followRepository: FollowRepository
+) : ProfileService {
 
+    override fun getProfile(name: String, authUserDetails: AuthUserDetails): ProfileDto {
+        val user = userRepository.findByUsername(name).orElseThrow { AppException(Error.USER_NOT_FOUND) }
+        val following = followRepository.findByFolloweeIdAndFollowerId(user.id, authUserDetails.id.toString()).isPresent
+        return convertToProfile(user, following)
+    }
 
-    @Override
-    public ProfileDto getProfile(String name, AuthUserDetails authUserDetails) {
-        UserDocument user = userRepository.findByUsername(name).orElseThrow(() -> new AppException(Error.USER_NOT_FOUND));
-        Boolean following = followRepository.findByFolloweeIdAndFollowerId(user.getId(), String.valueOf(authUserDetails.getId())).isPresent();
+    override fun followUser(name: String, authUserDetails: AuthUserDetails): ProfileDto {
+        val followee = userRepository.findByUsername(name).orElseThrow { AppException(Error.USER_NOT_FOUND) }
+        val follower = userRepository.findById(authUserDetails.id.toString()).orElseThrow { AppException(Error.USER_NOT_FOUND) }
 
-        return convertToProfile(user, following);
+        followRepository.findByFolloweeIdAndFollowerId(followee.id, follower.id)
+                .ifPresent { throw AppException(Error.ALREADY_FOLLOWED_USER) }
+
+        val follow = FollowDocument.builder().followee(followee).follower(follower).build()
+        followRepository.save(follow)
+
+        return convertToProfile(followee, true)
     }
 
     @Transactional
-    @Override
-    public ProfileDto followUser(String name, AuthUserDetails authUserDetails) {
-        UserDocument followee = userRepository.findByUsername(name).orElseThrow(() -> new AppException(Error.USER_NOT_FOUND));
-        UserDocument follower = userRepository.findById(String.valueOf(authUserDetails.getId())).orElseThrow(() -> new AppException(Error.USER_NOT_FOUND));
-        ; // myself
+    override fun unfollowUser(name: String, authUserDetails: AuthUserDetails): ProfileDto {
+        val followee = userRepository.findByUsername(name).orElseThrow { AppException(Error.USER_NOT_FOUND) }
+        val follower = userRepository.findById(authUserDetails.id.toString()).orElseThrow { AppException(Error.USER_NOT_FOUND) }
 
-        followRepository.findByFolloweeIdAndFollowerId(followee.getId(), follower.getId())
-                .ifPresent(follow -> {
-                    throw new AppException(Error.ALREADY_FOLLOWED_USER);
-                });
+        val follow = followRepository.findByFolloweeIdAndFollowerId(followee.id, follower.id)
+                .orElseThrow { AppException(Error.FOLLOW_NOT_FOUND) }
 
-        FollowDocument follow = FollowDocument.builder().followee(followee).follower(follower).build();
-        followRepository.save(follow);
+        followRepository.delete(follow)
 
-        return convertToProfile(followee, true);
+        return convertToProfile(followee, false)
     }
 
-    @Transactional
-    @Override
-    public ProfileDto unfollowUser(String name, AuthUserDetails authUserDetails) {
-        UserDocument followee = userRepository.findByUsername(name).orElseThrow(() -> new AppException(Error.USER_NOT_FOUND));
-        UserDocument follower = userRepository.findById(String.valueOf(authUserDetails.getId())).orElseThrow(() -> new AppException(Error.USER_NOT_FOUND));
-        ; // myself
-
-        FollowDocument follow = followRepository.findByFolloweeIdAndFollowerId(followee.getId(), follower.getId())
-                .orElseThrow(() -> new AppException(Error.FOLLOW_NOT_FOUND));
-        System.out.println(follow);
-        followRepository.delete(follow);
-
-        return convertToProfile(followee, false);
+    override fun getProfileByUserId(userId: String, authUserDetails: AuthUserDetails): ProfileDto {
+        val user = userRepository.findByEmail(authUserDetails.email).orElseThrow { AppException(Error.USER_NOT_FOUND) }
+        val following = followRepository.findByFolloweeIdAndFollowerId(user.id, authUserDetails.id.toString()).isPresent
+        return convertToProfile(user, following)
     }
 
-    @Override
-    public ProfileDto getProfileByUserId(String userId, AuthUserDetails authUserDetails) {
-        UserDocument user = userRepository.findByEmail(authUserDetails.getEmail()).orElseThrow(() -> new AppException(Error.USER_NOT_FOUND));
-//        UserDocument user = userRepository.findById(Long.valueOf(userId)).orElseThrow(() -> new AppException(Error.USER_NOT_FOUND));
-        Boolean following = followRepository.findByFolloweeIdAndFollowerId(user.getId(), String.valueOf(authUserDetails.getId())).isPresent();
-        return convertToProfile(user, following);
-    }
-
-
-    private ProfileDto convertToProfile(UserDocument user, Boolean following) {
+    private fun convertToProfile(user: UserDocument, following: Boolean): ProfileDto {
         return ProfileDto.builder()
-                .username(user.getUsername())
-                .bio(user.getBio())
-                .image(user.getImage())
+                .username(user.username)
+                .bio(user.bio)
+                .image(user.image)
                 .following(following)
-                .build();
+                .build()
     }
 
-    @Override
-    public ProfileDto getProfileByUserIds(String userId) {
-        UserDocument user = userRepository.findById(userId).orElseThrow(() -> new AppException(Error.USER_NOT_FOUND));
-        return convertToProfiles(user);
+    override fun getProfileByUserIds(userId: String): ProfileDto {
+        val user = userRepository.findById(userId).orElseThrow { AppException(Error.USER_NOT_FOUND) }
+        return convertToProfiles(user)
     }
 
-    private ProfileDto convertToProfiles(UserDocument user) {
+    private fun convertToProfiles(user: UserDocument): ProfileDto {
         return ProfileDto.builder()
-                .username(user.getUsername())
-                .bio(user.getBio())
-                .image(user.getImage())
-                .build();
+                .username(user.username)
+                .bio(user.bio)
+                .image(user.image)
+                .build()
     }
 }

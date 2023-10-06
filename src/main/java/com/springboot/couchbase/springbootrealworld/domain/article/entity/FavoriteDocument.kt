@@ -1,35 +1,28 @@
-package com.springboot.couchbase.springbootrealworld.domain.article.entity;
+package com.springboot.couchbase.springbootrealworld.domain.article.entity
 
-import com.springboot.couchbase.springbootrealworld.domain.user.entity.UserDocument;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.Version;
-import org.springframework.data.couchbase.core.mapping.Document;
-import org.springframework.data.couchbase.core.mapping.Field;
-import org.springframework.data.couchbase.core.mapping.id.GeneratedValue;
-import org.springframework.data.couchbase.core.mapping.id.GenerationStrategy;
+import com.springboot.couchbase.springbootrealworld.domain.user.entity.UserDocument
+import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.Version
+import org.springframework.data.couchbase.core.mapping.Document
+import org.springframework.data.couchbase.core.mapping.Field
+import org.springframework.data.couchbase.core.mapping.id.GeneratedValue
+import org.springframework.data.couchbase.core.mapping.id.GenerationStrategy
 
-
-@Getter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @Document
-public class FavoriteDocument {
+data class FavoriteDocument(
+        @Id
+        @GeneratedValue(strategy = GenerationStrategy.UNIQUE)
+        var id: String?,
+        @Field
+        var author: UserDocument?,
+        @Field
+        var article: ArticleDocument?,
+        @Field
+        @Version
+        var version: Long
+) {
 
-    public final static String FAVORITE_COLLECTION_NAME = "favorite";
-
-    @Id
-    @GeneratedValue(strategy = GenerationStrategy.UNIQUE)
-    protected String id;
-    @Field
-    private UserDocument author;
-    @Field
-    private ArticleDocument article;
-    @Field
-    @Version
-    private long version;
+    companion object {
+        const val FAVORITE_COLLECTION_NAME = "favorite"
+    }
 }

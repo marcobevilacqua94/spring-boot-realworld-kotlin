@@ -1,20 +1,13 @@
-package com.springboot.couchbase.springbootrealworld.domain.article.model;
+package com.springboot.couchbase.springbootrealworld.domain.article.model
 
-import lombok.*;
-import javax.validation.constraints.AssertTrue;
+import javax.validation.constraints.AssertTrue
 
-@Getter
-@Setter
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class FeedParams {
-    protected Integer offset;
-    protected Integer limit;
-
+data class FeedParams(
+        var offset: Int?,
+        var limit: Int?
+) {
     @AssertTrue
-    protected boolean getValidPage() {
-        return (offset != null && limit != null) || (offset == null && limit == null);
+    fun isValidPage(): Boolean {
+        return (offset != null && limit != null) || (offset == null && limit == null)
     }
-
 }
