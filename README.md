@@ -5,11 +5,11 @@
 ### [Demo](https://demo.realworld.io/)&nbsp;&nbsp;&nbsp;&nbsp;[RealWorld](https://github.com/gothinkster/realworld)
 
 
-This codebase was created to demonstrate a realworld backend application built with **Spring Data Couchbase** including CRUD operations, authentication, routing, pagination, and more. For more information on how to this works with other frontends/backends, head over to the [RealWorld](https://github.com/gothinkster/realworld) repo.
+This codebase was created to demonstrate a realworld backend application built with **Spring Data Couchbase** and Kotlin including CRUD operations, authentication, routing, pagination, and more. For more information on how to this works with other frontends/backends, head over to the [RealWorld](https://github.com/gothinkster/realworld) repo.
 
 # Getting started
 
-This Project requries Java 17, Maven, and a running Couchbase Server instance. See the Setup Couchbase section for more details.
+This Project requries Kotlin 1.9, Maven, and a running Couchbase Server instance. See the Setup Couchbase section for more details.
 
 ## Configuration
 
