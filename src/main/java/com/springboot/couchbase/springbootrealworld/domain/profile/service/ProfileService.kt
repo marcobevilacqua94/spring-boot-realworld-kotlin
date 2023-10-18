@@ -7,6 +7,6 @@ interface ProfileService {
     fun getProfile(username: String, authUserDetails: AuthUserDetails): ProfileDto
     fun followUser(name: String, authUserDetails: AuthUserDetails): ProfileDto
     fun unfollowUser(name: String, authUserDetails: AuthUserDetails): ProfileDto
-    fun getProfileByUserId(userId: String, authUserDetails: AuthUserDetails): ProfileDto
+    fun getProfileByUserId(authUserDetails: AuthUserDetails): ProfileDto
     fun getProfileByUserIds(userId: String): ProfileDto
 }

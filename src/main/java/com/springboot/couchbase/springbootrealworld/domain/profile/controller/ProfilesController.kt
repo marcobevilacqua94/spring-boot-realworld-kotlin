@@ -11,7 +11,6 @@ import org.springframework.web.server.ResponseStatusException
 
 @RestController
 @RequestMapping("/profiles")
-@RequiredArgsConstructor
 class ProfilesController @Autowired constructor(private val profileService: ProfileService) {
 
     @GetMapping("/{username}")

@@ -1,9 +1,19 @@
 package com.springboot.couchbase.springbootrealworld.domain.article.dto
 
 import com.fasterxml.jackson.annotation.JsonFormat
+import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.annotation.JsonTypeInfo
+import com.fasterxml.jackson.annotation.JsonTypeName
+import com.springboot.couchbase.springbootrealworld.configuration.CouchbaseConfig
 import com.springboot.couchbase.springbootrealworld.domain.profile.dto.ProfileDto
+import lombok.AllArgsConstructor
+import lombok.NoArgsConstructor
+import lombok.ToString
 import java.util.*
 
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString
 data class CommentDto(
         var id: String?,
 
@@ -14,13 +24,21 @@ data class CommentDto(
         var updatedAt: Date?,
 
         var body: String?,
-        var author: ProfileDto?
+        var author: ProfileDto? = null
 ) {
-    data class SingleComment(
-            var comment: CommentDto?
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @ToString
+    class SingleComment(
+            @JsonProperty("comment")
+            var comment: CommentDto
     )
 
-    data class MultipleComments(
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @ToString
+    class MultipleComments(
+            @JsonProperty("comments")
             var comments: List<CommentDto>?
     )
 }

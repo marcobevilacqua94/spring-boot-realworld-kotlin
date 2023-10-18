@@ -4,4 +4,4 @@ data class ArticleQueryParam(
         var tag: String?,
         var author: String?,
         var favorited: String?
-) : FeedParams()
+) : FeedParams(null, null)

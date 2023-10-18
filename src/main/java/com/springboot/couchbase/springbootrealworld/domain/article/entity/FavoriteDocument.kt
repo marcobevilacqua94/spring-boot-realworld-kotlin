@@ -10,16 +10,17 @@ import org.springframework.data.couchbase.core.mapping.id.GenerationStrategy
 
 @Document
 data class FavoriteDocument(
+
         @Id
         @GeneratedValue(strategy = GenerationStrategy.UNIQUE)
-        var id: String?,
+        var id: String? = null,
         @Field
         var author: UserDocument?,
         @Field
         var article: ArticleDocument?,
         @Field
         @Version
-        var version: Long
+        var version: Long? = null
 ) {
 
     companion object {

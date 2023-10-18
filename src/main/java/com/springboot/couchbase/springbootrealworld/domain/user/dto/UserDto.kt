@@ -11,8 +11,8 @@ data class UserDto(
         val token: String,
         val username: String,
         val password: String,
-        val bio: String,
-        val image: String
+        val bio: String?,
+        val image: String?
 )
 
 @JsonTypeName("user")
@@ -36,6 +36,6 @@ data class Update(
         val id: String,
         val email: String,
         val username: String,
-        val bio: String,
-        val image: String
+        val bio: String?,
+        val image: String?
 )

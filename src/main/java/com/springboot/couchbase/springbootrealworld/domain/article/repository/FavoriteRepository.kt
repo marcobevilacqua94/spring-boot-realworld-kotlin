@@ -15,7 +15,7 @@ interface FavoriteRepository : CrudRepository<FavoriteDocument, String> {
 
     fun findByArticleIdAndAuthorEmail(articleId: String, author: String): FavoriteDocument?
 
-    fun findByAuthorEmail(author: String): FavoriteDocument?
+    fun findByAuthorEmail(author: String): List<FavoriteDocument>
 
     fun findByArticleId(articleId: String): List<FavoriteDocument>
 

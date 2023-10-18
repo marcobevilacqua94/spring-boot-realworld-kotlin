@@ -2,7 +2,7 @@ package com.springboot.couchbase.springbootrealworld.domain.article.model
 
 import javax.validation.constraints.AssertTrue
 
-data class FeedParams(
+open class FeedParams(
         var offset: Int?,
         var limit: Int?
 ) {

@@ -15,10 +15,12 @@ import java.time.Duration
 import java.util.concurrent.TimeoutException
 
 import com.couchbase.client.core.logging.RedactableArgument.redactMeta
+import com.couchbase.client.core.retry.reactor.RetryContext
 import com.couchbase.client.core.util.CbThrowables.findCause
 import com.couchbase.client.core.util.CbThrowables.hasCause
 import java.util.stream.Collectors.toList
 import java.util.Collections.singletonMap
+import java.util.stream.Collectors
 import java.util.stream.Collectors.toMap
 
 object IndexCommons {
@@ -32,11 +34,14 @@ object IndexCommons {
     }
 
     private fun waitInner(timeout: Duration, runnable: () -> Unit) {
-        Mono.fromRunnable(runnable)
-                .retryWhen(Retry.onlyIf { ctx -> hasCause(ctx.exception(), IndexesNotReadyException::class.java) }
-                        .exponentialBackoff(Duration.ofMillis(50), Duration.ofSeconds(3))
-                        .timeout(timeout)
-                        .toReactorRetry())
+        Mono.fromRunnable<Void> { runnable.invoke() }
+                .retryWhen(
+                        Retry.onlyIf<RetryContext<Throwable>> {
+                            hasCause(it.exception(), IndexesNotReadyException::class.java)
+                        }
+                                .exponentialBackoff(Duration.ofMillis(50), Duration.ofSeconds(3))
+                                .timeout(timeout).toReactorRetry()
+                )
                 .onErrorMap { t ->
                     if (t is RetryExhaustedException) toWatchTimeoutException(t, timeout) else t
                 }
@@ -46,15 +51,15 @@ object IndexCommons {
     private fun toWatchTimeoutException(t: Throwable, timeout: Duration): TimeoutException {
         val msg = "A requested index is still not ready after $timeout."
         findCause(t, IndexesNotReadyException::class.java).ifPresent { cause ->
-            msg.append(" Unready index name -> state: ${redactMeta(cause.indexNameToState())}")
+            msg.plus(" Unready index name -> state: ${redactMeta(cause.indexNameToState())}")
         }
         return TimeoutException(msg.toString())
     }
 
     private fun failIfIndexesPresent(httpClient: CouchbaseHttpClient, bucketName: String) {
-        val matchingIndexes = getMatchingIndexInfo(httpClient, bucketName)
+        val matchingIndexes: Map<String, String> = getMatchingIndexInfo(httpClient, bucketName)
                 .stream()
-                .collect(toMap(IndexInfo::qualified, IndexInfo::status))
+                .collect(toMap(IndexInfo::getQualified, IndexInfo::status))
 
         if (matchingIndexes.isNotEmpty()) {
             throw IndexesNotReadyException(matchingIndexes)
@@ -70,7 +75,7 @@ object IndexCommons {
 
         val offlineIndexNameToState = matchingIndexes
                 .filter { idx -> idx.status != "Ready" }
-                .associateBy({ it.qualified }, { it.status })
+                .associateBy({ it.getQualified() }, { it.status })
 
         if (offlineIndexNameToState.isNotEmpty()) {
             throw IndexesNotReadyException(offlineIndexNameToState)

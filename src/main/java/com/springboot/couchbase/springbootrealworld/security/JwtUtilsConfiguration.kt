@@ -5,10 +5,10 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 @Configuration
-class JwtUtilsConfiguration {
+open class JwtUtilsConfiguration {
 
     @Bean
-    fun jwtUtils(
+    open fun jwtUtils(
             @Value("\${realworld.auth.token.sign-key}") signKey: String,
             @Value("\${realworld.auth.token.valid-time}") validTime: Long
     ): JwtUtils {

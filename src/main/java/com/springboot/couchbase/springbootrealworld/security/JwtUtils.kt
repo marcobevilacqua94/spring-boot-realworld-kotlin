@@ -9,7 +9,7 @@ import java.security.Key
 import java.time.Instant
 import java.util.Date
 
-class JwtUtils(signKey: String, private val validSeconds: Long) {
+open class JwtUtils(signKey: String, private val validSeconds: Long) {
     private val key: Key = Keys.hmacShaKeyFor(signKey.toByteArray(StandardCharsets.UTF_8))
 
     fun encode(sub: String?): String? {

@@ -18,9 +18,7 @@ class TagController @Autowired constructor(
     @GetMapping
     fun getArticleTags(): TagDto.TagList {
         return try {
-            TagDto.TagList.builder()
-                    .tags(tagService.allTagList)
-                    .build()
+            TagDto.TagList(tags = tagService.getAllTagList())
         } catch (aex: AppException) {
             throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }

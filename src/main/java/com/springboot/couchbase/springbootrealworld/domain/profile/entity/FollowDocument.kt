@@ -10,9 +10,10 @@ import org.springframework.data.couchbase.core.mapping.id.GenerationStrategy
 
 @Document
 data class FollowDocument(
+
         @Id
         @GeneratedValue(strategy = GenerationStrategy.UNIQUE)
-        val id: String?,
+        val id: String? = "",
 
         @Field
         val followee: UserDocument?,
@@ -22,5 +23,10 @@ data class FollowDocument(
 
         @Field
         @Version
-        val version: Long?
-)
+        val version: Long? = null,
+
+) {
+        companion object {
+                const val FOLLOW_COLLECTION_NAME: String = "follow"
+        }
+}

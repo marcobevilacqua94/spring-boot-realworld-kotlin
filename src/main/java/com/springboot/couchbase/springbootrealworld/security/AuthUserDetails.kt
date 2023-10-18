@@ -4,22 +4,10 @@ import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
 
 class AuthUserDetails(
-        private val id: String,
+        val id: String,
         val email: String,
-        private val bio: String
+        val bio: String = ""
 ) : UserDetails {
-
-    override fun getId(): String {
-        return id
-    }
-
-    override fun getEmail(): String {
-        return email
-    }
-
-    override fun getBio(): String {
-        return bio
-    }
 
     override fun getAuthorities(): Collection<GrantedAuthority>? {
         // no authority in this project

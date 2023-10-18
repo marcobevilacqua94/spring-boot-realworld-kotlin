@@ -4,6 +4,8 @@ import com.couchbase.client.core.error.CollectionExistsException
 import com.couchbase.client.core.error.IndexNotFoundException
 import com.couchbase.client.core.error.InternalServerFailureException
 import com.couchbase.client.core.retry.reactor.Retry
+import com.couchbase.client.core.util.CbThrowables.findCause
+import com.couchbase.client.core.util.CbThrowables.hasCause
 import com.couchbase.client.java.Bucket
 import com.couchbase.client.java.Cluster
 import com.couchbase.client.java.manager.collection.CollectionManager
@@ -22,6 +24,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.CommandLineRunner
+import org.springframework.data.couchbase.core.CouchbaseTemplate
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
 import java.time.Duration
@@ -46,8 +49,8 @@ class DBSetupRunners : CommandLineRunner {
         val cluster: Cluster = couchbaseTemplate.couchbaseClientFactory.cluster
         val bucket: Bucket = couchbaseTemplate.couchbaseClientFactory.bucket
 
-        val defaultBucket: String = clusterProperties.defaultBucket
-        val defaultScope: String = clusterProperties.defaultScope
+        val defaultBucket: String = clusterProperties.defaultBucket!!
+        val defaultScope: String = clusterProperties.defaultScope!!
 
         try {
             cluster.queryIndexes().createPrimaryIndex(defaultBucket)
@@ -62,7 +65,7 @@ class DBSetupRunners : CommandLineRunner {
                 FavoriteDocument.FAVORITE_COLLECTION_NAME,
                 CommentDocument.COMMENT_COLLECTION_NAME,
                 ArticleTagRelationDocument.TAG_COLLECTION_NAME,
-                FollowDocument.FOLLOW_COLLECTION_NANE
+                FollowDocument.FOLLOW_COLLECTION_NAME
         )
 
         collections.forEach { col -> createCollection(bucket, defaultScope, col) }
@@ -79,25 +82,25 @@ class DBSetupRunners : CommandLineRunner {
     }
 
     private fun setupPrimaryIndex(cluster: Cluster, bucketName: String, scope: String, collectionName: String) {
-        Mono.fromRunnable { createIndex(cluster, bucketName, scope, collectionName) }
-                .retryWhen(
-                        Retry.onlyIf { ctx ->
-                            findCause(ctx.exception(), InternalServerFailureException::class.java)
-                                    .filter { exception ->
-                                        CouchbaseError.create(exception)
-                                                .errorEntries.any { err -> err.message.contains("GSI") }
-                                    }
-                                    .isPresent
+        Mono.fromRunnable<Void> { createIndex(cluster, bucketName, scope, collectionName) }
+            .retryWhen(
+                Retry.onlyIf<Void> { ctx ->
+                    findCause(ctx.exception(), InternalServerFailureException::class.java)
+                        .filter { exception ->
+                            CouchbaseError.create(exception)
+                                .errorEntries.any { err -> err.message.contains("GSI") }
                         }
-                                .exponentialBackoff(Duration.ofMillis(50), Duration.ofSeconds(3))
-                                .timeout(Duration.ofSeconds(60))
-                                .toReactorRetry()
-                )
-                .block()
+                        .isPresent
+                }
+                    .exponentialBackoff(Duration.ofMillis(50), Duration.ofSeconds(3))
+                    .timeout(Duration.ofSeconds(60))
+                    .toReactorRetry()
+            )
+            .block()
 
-        Mono.fromRunnable { waitForIndex(cluster, bucketName, scope, collectionName) }
+        Mono.fromRunnable<Void>{ waitForIndex(cluster, bucketName, scope, collectionName) }
                 .retryWhen(
-                        Retry.onlyIf { ctx -> hasCause(ctx.exception(), IndexNotFoundException::class.java) }
+                        Retry.onlyIf<Void> { ctx -> hasCause(ctx.exception(), IndexNotFoundException::class.java) }
                                 .exponentialBackoff(Duration.ofMillis(50), Duration.ofSeconds(3))
                                 .timeout(Duration.ofSeconds(30))
                                 .toReactorRetry()

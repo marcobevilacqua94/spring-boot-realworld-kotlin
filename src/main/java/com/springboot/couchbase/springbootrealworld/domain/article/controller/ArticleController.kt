@@ -34,9 +34,9 @@ class ArticleController {
 
     // Adding an Article
     @PostMapping
-    fun createArticle(@RequestBody article: ArticleDto.SingleArticle<ArticleDto>, @AuthenticationPrincipal authUserDetails: AuthUserDetails): ArticleDto.SingleArticle<ArticleDto> {
+    fun createArticle(@RequestBody article: ArticleDto.SingleArticleDto, @AuthenticationPrincipal authUserDetails: AuthUserDetails): ArticleDto.SingleArticleDto {
         try {
-            return ArticleDto.SingleArticle(articleService.createArticle(article.article, authUserDetails))
+            return ArticleDto.SingleArticleDto(articleService.createArticle(article.article, authUserDetails))
         } catch (aex: AppException) {
             throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }
@@ -44,9 +44,9 @@ class ArticleController {
 
     // Get an Article using slug
     @GetMapping("/{slug}")
-    fun getArticle(@PathVariable slug: String, @AuthenticationPrincipal authUserDetails: AuthUserDetails): ArticleDto.SingleArticle<ArticleDto> {
+    fun getArticle(@PathVariable slug: String, @AuthenticationPrincipal authUserDetails: AuthUserDetails): ArticleDto.SingleArticleDto {
         try {
-            return ArticleDto.SingleArticle(articleService.getArticle(slug, authUserDetails))
+            return ArticleDto.SingleArticleDto(article = articleService.getArticle(slug, authUserDetails))
         } catch (aex: AppException) {
             throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }
@@ -54,9 +54,9 @@ class ArticleController {
 
     // Update an Article using slug
     @PutMapping("/{slug}")
-    fun updateArticle(@PathVariable slug: String, @RequestBody article: ArticleDto.SingleArticle<ArticleDto.Update>, @AuthenticationPrincipal authUserDetails: AuthUserDetails): ArticleDto.SingleArticle<ArticleDto> {
+    fun updateArticle(@PathVariable slug: String, @RequestBody article: ArticleDto.Update, @AuthenticationPrincipal authUserDetails: AuthUserDetails): ArticleDto.SingleArticleDto {
         try {
-            return ArticleDto.SingleArticle(articleService.updateArticle(slug, article.article, authUserDetails))
+            return ArticleDto.SingleArticleDto(article = articleService.updateArticle(slug, article, authUserDetails))
         } catch (aex: AppException) {
             throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }
@@ -81,7 +81,7 @@ class ArticleController {
     ): CommentDto.SingleComment {
         try {
             println(comment)
-            val addedComment = commentService.addCommentsToAnArticle(slug, comment.comment, authUserDetails)
+            val addedComment = comment.let { commentService.addCommentsToAnArticle(slug, it.comment, authUserDetails) }
             return CommentDto.SingleComment(addedComment)
         } catch (aex: AppException) {
             throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
@@ -92,9 +92,7 @@ class ArticleController {
     @GetMapping("/{slug}/comments")
     fun getCommentsFromAnArticle(@PathVariable slug: String, @AuthenticationPrincipal authUserDetails: AuthUserDetails): CommentDto.MultipleComments {
         try {
-            return CommentDto.MultipleComments.builder()
-                    .comments(commentService.getCommentsBySlug(slug, authUserDetails))
-                    .build()
+            return CommentDto.MultipleComments(commentService.getCommentsBySlug(slug, authUserDetails))
         } catch (aex: AppException) {
             throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }
@@ -112,9 +110,9 @@ class ArticleController {
 
     // Post a favorite article with a slug as a parameter
     @PostMapping("/{slug}/favorite")
-    fun favoriteArticle(@PathVariable slug: String, @AuthenticationPrincipal authUserDetails: AuthUserDetails): ArticleDto.SingleArticle<ArticleDto> {
+    fun favoriteArticle(@PathVariable slug: String, @AuthenticationPrincipal authUserDetails: AuthUserDetails): ArticleDto {
         try {
-            return ArticleDto.SingleArticle(articleService.favoriteArticle(slug, authUserDetails))
+            return articleService.favoriteArticle(slug, authUserDetails)
         } catch (aex: AppException) {
             throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }
@@ -124,9 +122,7 @@ class ArticleController {
     @GetMapping("/{slug}/favorites")
     fun getFavoritesFromAnArticle(@PathVariable slug: String, @AuthenticationPrincipal authUserDetails: AuthUserDetails): FavoriteDto.MultipleFavorites {
         try {
-            return FavoriteDto.MultipleFavorites.builder()
-                    .favorites(favoriteService.getFavoritesBySlug(slug, authUserDetails))
-                    .build()
+            return FavoriteDto.MultipleFavorites(favoriteService.getFavoritesBySlug(slug, authUserDetails))
         } catch (aex: AppException) {
             throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }
@@ -134,9 +130,9 @@ class ArticleController {
 
     // Delete a favorite article with a slug as a parameter
     @DeleteMapping("/{slug}/favorite")
-    fun deleteFavorite(@PathVariable("slug") slug: String, @AuthenticationPrincipal authUserDetails: AuthUserDetails): ArticleDto.SingleArticle<ArticleDto> {
+    fun deleteFavorite(@PathVariable("slug") slug: String, @AuthenticationPrincipal authUserDetails: AuthUserDetails): ArticleDto {
         try {
-            return ArticleDto.SingleArticle(favoriteService.delete(slug, authUserDetails))
+            return favoriteService.delete(slug, authUserDetails)
         } catch (aex: AppException) {
             throw ResponseStatusException(aex.error.status.value(), aex.error.message, aex)
         }

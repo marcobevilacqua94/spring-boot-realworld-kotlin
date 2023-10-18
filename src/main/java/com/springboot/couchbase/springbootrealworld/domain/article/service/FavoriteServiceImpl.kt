@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
-class FavoriteServiceImpl @Autowired constructor(
+open class FavoriteServiceImpl @Autowired constructor(
         private val articleRepository: ArticleRepository,
         private val articleService: ArticleService,
         private val favoriteRepository: FavoriteRepository,
@@ -26,25 +26,25 @@ class FavoriteServiceImpl @Autowired constructor(
 ) : FavoriteService {
 
     override fun getFavoritesBySlug(slug: String, authUserDetails: AuthUserDetails): List<FavoriteDto> {
-        val articleId = articleRepository.findBySlug(slug)?.id ?: throw AppException(Error.ARTICLE_NOT_FOUND)
+        val articleId = articleRepository.findBySlug(slug).id ?: throw AppException(Error.ARTICLE_NOT_FOUND)
         val favoriteEntities = favoriteRepository.findByArticleId(articleId)
         return favoriteEntities.map { convertToDTO(authUserDetails, it) }
     }
 
-    @Transactional
+    //@Transactional
     override fun delete(slug: String, authUserDetails: AuthUserDetails): ArticleDto {
         val article = articleRepository.findBySlug(slug) ?: throw AppException(Error.ARTICLE_NOT_FOUND)
         val articleId = article.id
-        val favoriteEntities = favoriteRepository.findByArticleId(articleId)
+        val favoriteEntities = favoriteRepository.findByArticleId(articleId!!)
         favoriteRepository.deleteAll(favoriteEntities)
         return articleService.getArticle(slug, authUserDetails)
     }
 
     private fun convertToDTO(authUserDetails: AuthUserDetails, favoriteDocument: FavoriteDocument): FavoriteDto {
-        val author = profileService.getProfileByUserId(favoriteDocument.author.id, authUserDetails)
-        return FavoriteDto.builder()
-                .id(favoriteDocument.id)
-                .author(author)
-                .build()
+        val author = profileService.getProfileByUserId(authUserDetails)
+        return FavoriteDto(
+                id = favoriteDocument.id,
+                author = author
+        )
     }
 }

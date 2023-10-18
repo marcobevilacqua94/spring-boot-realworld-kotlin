@@ -12,13 +12,13 @@ open class BaseDocument(
         @Id
         @GeneratedValue(strategy = GenerationStrategy.UNIQUE)
         @IdAttribute
-        var id: String? = null,
+        open var id: String? = null,
 
         @Field
-        var createdAt: Date = Date(),
+        open var createdAt: Date = Date(),
 
         @Field
-        var updatedAt: Date = Date(),
+        open var updatedAt: Date = Date(),
 
         @Field
         @Version

@@ -12,18 +12,6 @@ class IndexInfo(val name: String, val bucket: String, val status: String, val la
         }
     }
 
-    fun getName(): String {
-        return name
-    }
-
-    fun getBucket(): String {
-        return bucket
-    }
-
-    fun getStatus(): String {
-        return status
-    }
-
     fun getQualified(): String {
         return "$bucket:$name"
     }

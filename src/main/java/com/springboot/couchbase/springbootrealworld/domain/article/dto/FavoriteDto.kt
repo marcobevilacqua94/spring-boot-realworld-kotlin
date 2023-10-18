@@ -4,14 +4,14 @@ import com.springboot.couchbase.springbootrealworld.domain.profile.dto.ProfileDt
 
 data class FavoriteDto(
         var id: String?,
-        var body: String?,
+        var body: String? = null,
         var author: ProfileDto?
 ) {
-    data class SingleFavorite(
+    class SingleFavorite(
             var favorite: FavoriteDto?
     )
 
-    data class MultipleFavorites(
+    class MultipleFavorites(
             var favorites: List<FavoriteDto>?
     )
 }

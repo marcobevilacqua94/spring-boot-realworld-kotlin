@@ -7,4 +7,6 @@ import org.springframework.stereotype.Repository
 
 @Repository
 @Collection(ArticleTagRelationDocument.TAG_COLLECTION_NAME)
-interface TagRepository : CrudRepository<ArticleTagRelationDocument, String>
+interface TagRepository : CrudRepository<ArticleTagRelationDocument, String> {
+
+}

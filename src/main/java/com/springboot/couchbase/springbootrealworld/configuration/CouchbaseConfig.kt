@@ -1,3 +1,5 @@
+package com.springboot.couchbase.springbootrealworld.configuration
+
 import com.couchbase.client.core.env.SecurityConfig
 import com.couchbase.client.java.Cluster
 import com.couchbase.client.java.env.ClusterEnvironment
@@ -11,7 +13,7 @@ import org.springframework.data.couchbase.repository.config.EnableCouchbaseRepos
 
 @Configuration
 @EnableCouchbaseRepositories(basePackages = ["com.springboot.couchbase.springbootrealworld"])
-class CouchbaseConfig : AbstractCouchbaseConfiguration() {
+open class CouchbaseConfig : AbstractCouchbaseConfiguration() {
 
     @Autowired
     private lateinit var clusterProperties: ClusterProperties

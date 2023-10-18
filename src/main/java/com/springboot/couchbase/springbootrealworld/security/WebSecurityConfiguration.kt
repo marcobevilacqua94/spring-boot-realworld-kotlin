@@ -7,27 +7,27 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.HttpStatusEntryPoint
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 
 @EnableWebSecurity
 @Configuration
-class WebSecurityConfiguration(private val jwtAuthFilter: JWTAuthFilter) {
+open class WebSecurityConfiguration(private val jwtAuthFilter: JWTAuthFilter) {
 
     @Bean
-    fun passwordEncoder(): PasswordEncoder {
+    open fun passwordEncoder(): PasswordEncoder {
         return BCryptPasswordEncoder()
     }
 
     @Bean
-    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
+    open fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
                 .csrf { it.disable() }
                 .formLogin { it.disable() }
-                .authorizeRequests { req ->
-                    req.requestMatchers()
-                            .antMatchers("/users/**", "/tags/**", "/articles/**").permitAll()
-                            .anyRequest().authenticated()
+                .authorizeRequests {
+                    it.requestMatchers("/users/**", "/tags/**", "/articles/**").permitAll()
+                    it.anyRequest().authenticated()
                 }
                 .exceptionHandling { it.authenticationEntryPoint(HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)) }
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter::class.java)
@@ -35,3 +35,14 @@ class WebSecurityConfiguration(private val jwtAuthFilter: JWTAuthFilter) {
         return http.build()
     }
 }
+
+
+
+
+
+
+
+
+
+
+

@@ -1,5 +1,7 @@
 package com.springboot.couchbase.springbootrealworld.domain.user.controller
 
+import com.springboot.couchbase.springbootrealworld.domain.user.dto.Login
+import com.springboot.couchbase.springbootrealworld.domain.user.dto.Registration
 import com.springboot.couchbase.springbootrealworld.domain.user.dto.UserDto
 import com.springboot.couchbase.springbootrealworld.domain.user.service.UserService
 import com.springboot.couchbase.springbootrealworld.exception.AppException
@@ -13,7 +15,7 @@ import javax.validation.Valid
 class UsersController(@Autowired private val userService: UserService) {
 
     @PostMapping
-    fun registration(@RequestBody @Valid registration: UserDto.Registration): UserDto {
+    fun registration(@RequestBody @Valid registration: Registration): UserDto {
         try {
             return userService.registration(registration)
         } catch (aex: AppException) {
@@ -22,7 +24,7 @@ class UsersController(@Autowired private val userService: UserService) {
     }
 
     @PostMapping("/login")
-    fun login(@RequestBody login: UserDto.Login): UserDto {
+    fun login(@RequestBody login: Login): UserDto {
         try {
             return userService.login(login)
         } catch (aex: AppException) {

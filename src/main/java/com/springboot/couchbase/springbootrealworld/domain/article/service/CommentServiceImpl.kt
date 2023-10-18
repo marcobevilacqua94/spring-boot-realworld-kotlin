@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.util.*
 
 @Service
-class CommentServiceImpl @Autowired constructor(
+open class CommentServiceImpl @Autowired constructor(
         private val articleRepository: ArticleRepository,
         private val commentRepository: CommentRepository,
         private val profileService: ProfileService
@@ -25,14 +25,13 @@ class CommentServiceImpl @Autowired constructor(
 
     override fun addCommentsToAnArticle(slug: String, comment: CommentDto, authUserDetails: AuthUserDetails): CommentDto {
         val articleDocument: ArticleDocument? = articleRepository.findBySlug(slug)
-        val commentDocument = CommentDocument.builder()
-                .id(comment.id)
-                .body(comment.body)
-                .author(UserDocument.builder().id(authUserDetails.id).build())
-                .article(articleDocument)
-                .createdAt(Date())
-                .updatedAt(Date())
-                .build()
+        val commentDocument = CommentDocument(
+                id = comment.id,
+                body = comment.body,
+                author = UserDocument(id = authUserDetails.id),
+                article = articleDocument,
+                createdAt = Date(),
+                updatedAt = Date())
         commentRepository.save(commentDocument)
         return convertToDTO(authUserDetails, commentDocument)
     }
@@ -40,7 +39,7 @@ class CommentServiceImpl @Autowired constructor(
     override fun getCommentsBySlug(slug: String, authUserDetails: AuthUserDetails): List<CommentDto> {
         val article = articleRepository.findBySlug(slug) ?: throw AppException(Error.ARTICLE_NOT_FOUND)
         val articleId = article.id
-        val commentEntities = commentRepository.findByArticleIdOrderByCreatedAtDesc(articleId)
+        val commentEntities = commentRepository.findByArticleIdOrderByCreatedAtDesc(articleId!!)
         return commentEntities.map { convertToDTO(authUserDetails, it) }
     }
 
@@ -53,16 +52,19 @@ class CommentServiceImpl @Autowired constructor(
     }
 
     private fun convertToDTO(authUserDetails: AuthUserDetails?, commentDocument: CommentDocument): CommentDto {
-        val builder = CommentDto.builder()
-                .id(commentDocument.id)
-                .createdAt(commentDocument.createdAt)
-                .updatedAt(commentDocument.updatedAt)
-                .body(commentDocument.body)
-        if (authUserDetails != null) {
-            val author: ProfileDto = profileService.getProfileByUserId(commentDocument.author.email, authUserDetails)
-            builder.author(author)
+        val author: ProfileDto? = if (authUserDetails != null) {
+            profileService.getProfileByUserId(authUserDetails)
+        } else {
+            null
         }
-        return builder.build()
+
+        return CommentDto(
+            id = commentDocument.id,
+            createdAt = commentDocument.createdAt,
+            updatedAt = commentDocument.updatedAt,
+            body = commentDocument.body,
+            author = author
+        )
     }
 
     private fun convertToDTOs(commentDocument: CommentDocument): CommentDto {
